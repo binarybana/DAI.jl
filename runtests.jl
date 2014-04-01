@@ -2,10 +2,10 @@ include("dai_common.jl")
 include("dai_wrap.jl")
 
 function wrapdai_varset_create()
-  ccall( (:wrapdai_varset_create, "src2/libdaiwrap.so"), Ptr{VarSet}, ())
+  ccall( (:wrapdai_varset_create, "src/libdaiwrap.so"), Ptr{VarSet}, ())
 end
 function wrapdai_var_create(label, states)
-  ccall( (:wrapdai_var_create, "src2/libdaiwrap.so"), Ptr{Var}, (Cint, Cint), label, states)
+  ccall( (:wrapdai_var_create, "src/libdaiwrap.so"), Ptr{Var}, (Cint, Cint), label, states)
 end
 
 x = wrapdai_var_create(0,2)
