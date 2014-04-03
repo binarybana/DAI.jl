@@ -89,7 +89,12 @@ unsigned int wrapdai_varset_nrStates(VarSet *vs) {
 int wrapdai_varset_size(VarSet *vs) { return vs->size(); }
 VarSet* wrapdai_varset_erase(VarSet *vs, Var *v) { return static_cast<VarSet*>(&(vs->erase(*v))); }
 VarSet* wrapdai_varset_remove(VarSet *vs1, VarSet *vs2) { return static_cast<VarSet*>(&((*vs1)/=(*vs2))); }
-VarSet* wrapdai_varset_add(VarSet *vs1, VarSet *vs2) { return static_cast<VarSet*>(&((*vs1)|=(*vs2))); }
+VarSet* wrapdai_varset_addm(VarSet *vs1, VarSet *vs2) { return static_cast<VarSet*>(&((*vs1)|=(*vs2))); }
+
+VarSet* wrapdai_varset_add(VarSet *vs1, VarSet *vs2) { return new VarSet ((*vs1)|(*vs2)); }
+VarSet* wrapdai_varset_add_one(VarSet *vs, Var *v) { return new VarSet ((*vs)|(*v)); }
+VarSet* wrapdai_varset_sub(VarSet *vs1, VarSet *vs2) { return new VarSet ((*vs1)/(*vs2)); }
+VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v) { return new VarSet ((*vs)/(*v)); }
 
     //size_t calcLinearState( VarSet &, map[Var, size_t] &)
     //map[Var, size_t] calcState( VarSet &, size_t)
@@ -193,6 +198,7 @@ FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs) {
   }
   return new FactorGraph(facvec); 
 }
+void wrapdai_fg_delete(FactorGraph *fg) { delete fg; }
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) { return new Var (fg->var(ind)); }
 Var** wrapdai_fg_vars(FactorGraph *fg) { 
   std::vector<Var> vars = fg->vars(); 
@@ -228,6 +234,7 @@ void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) { fg->ReadFromFile(tex
         //Factor belief(VarSet &)
 
 JTree* wrapdai_jt_create() { return new JTree(); }
+void wrapdai_jt_delete(JTree *jt) { delete jt; }
 JTree* wrapdai_jt_create_fgps(FactorGraph *fg, PropertySet *ps) { return new JTree(*fg, *ps); }
 void wrapdai_jt_init(JTree *jt) { jt->init(); }
 void wrapdai_jt_run(JTree *jt) { jt->run(); }
