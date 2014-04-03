@@ -1,5 +1,4 @@
-include("dai_common.jl")
-include("dai_wrap.jl")
+using DAI
 
 function wrapdai_varset_create()
   ccall( (:wrapdai_varset_create, "src/libdaiwrap.so"), Ptr{VarSet}, ())

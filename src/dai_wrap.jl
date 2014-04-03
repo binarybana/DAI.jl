@@ -1,6 +1,40 @@
 # Julia wrapper for header: src/dai.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
+# and then hand modified by Jason Knight <jason@jasonknight.us>
 
+function wrapdai_varset_create()
+  ccall( (:wrapdai_varset_create, "src/libdaiwrap.so"), Ptr{VarSet}, ())
+end
+function wrapdai_var_create(label, states)
+  ccall( (:wrapdai_var_create, "src/libdaiwrap.so"), Ptr{Var}, (Csize_t, Csize_t), label, states)
+end
+
+function wrapdai_varset_calcLinearState(vs::Ptr{VarSet}, states)
+  ccall( (:wrapdai_varset_calcLinearState, "src/libdaiwrap.so"), Csize_t, (Ptr{VarSet}, Ptr{Csize_t}), vs, uint64(states))
+end
+function wrapdai_varset_calcState(vs::Ptr{VarSet}, state)
+  states = Array(Csize_t, wrapdai_varset_size(vs))
+  ccall( (:wrapdai_varset_calcState, "src/libdaiwrap.so"), None, (Ptr{VarSet}, Csize_t, Ptr{Csize_t}), vs, state, states)
+  return states
+end
+function wrapdai_factor_create_varset_vals(vs::Ptr{VarSet}, vals)
+  ccall( (:wrapdai_factor_create_varset_vals, "src/libdaiwrap.so"), Ptr{Factor}, (Ptr{VarSet}, Ptr{Cdouble}), vs, vals)
+end
+function wrapdai_factor_get(fac::Ptr{Factor}, index)
+  ccall( (:wrapdai_factor_get, "src/libdaiwrap.so"), Cdouble, (Ptr{Factor}, Csize_t), fac, index)
+end
+function wrapdai_fg_create_facs(facs)
+  numfacs = length(facs)
+  ccall( (:wrapdai_fg_create_facs, "src/libdaiwrap.so"), Ptr{FactorGraph}, (Ptr{Factor}, Cint), facs, numfacs)
+end
+function wrapdai_factor_set(fac::Ptr{Factor}, index, val)
+  ccall( (:wrapdai_factor_set, "src/libdaiwrap.so"), None, (Ptr{Factor}, Csize_t, Cdouble), fac, index, val)
+end
+function wrapdai_ps_create(name)
+  ccall( (:wrapdai_ps_create, "src/libdaiwrap.so"), Ptr{PropertySet}, (Ptr{Uint8},), name)
+end
+
+########################
 function wrapdai_var_create(label::Csize_t, states::Csize_t)
   ccall( (:wrapdai_var_create, "src/libdaiwrap.so"), Ptr{Var}, (Csize_t, Csize_t), label, states)
 end
