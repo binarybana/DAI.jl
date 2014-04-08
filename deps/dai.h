@@ -25,6 +25,11 @@ VarSet* wrapdai_varset_add(VarSet *vs1, VarSet *vs2);
 VarSet* wrapdai_varset_sub(VarSet *vs1, VarSet *vs2);
 VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v);
 
+bool wrapdai_varset_contains(Var *v, VarSet *vs);
+bool wrapdai_varset_isequal(VarSet *v2, VarSet *vs2);
+
+Var* wrapdai_varset_vars(VarSet *vs);
+
 size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states);
 void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *states);
 //cdef extern from "dai/properties.h" namespace "dai":
@@ -49,13 +54,16 @@ double wrapdai_factor_entropy(Factor *fac);
 Factor* wrapdai_factor_marginal(Factor *fac, VarSet *vs);
 Factor* wrapdai_factor_embed(Factor *fac, VarSet *vs);
 double wrapdai_factor_normalize(Factor *fac);
+bool wrapdai_factor_isequal(Factor *fac1, Factor *fac2);
+double* wrapdai_factor_p(Factor *fac);
+int wrapdai_factor_numvars(Factor *fac);
 
 
 FactorGraph* wrapdai_fg_create();
 FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs);
 void wrapdai_fg_delete(FactorGraph *fg);
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) ;
-Var** wrapdai_fg_vars(FactorGraph *fg) ;
+const Var* wrapdai_fg_vars(FactorGraph *fg);
 FactorGraph* wrapdai_fg_clone(FactorGraph *fg) ;
 size_t wrapdai_fg_nrVars(FactorGraph *fg) ;
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) ;

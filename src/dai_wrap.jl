@@ -5,11 +5,11 @@
 #typealias ptrdiff_t Clong
 #typealias size_t Culong
 #typealias wchar_t Cint
-import Base.length, Base.getindex, Base.setindex!, Base.copy
+import Base.length, Base.getindex, Base.setindex!, Base.copy, Base.isequal, Base.in, Base.show
 
 export Var, label, states
 export VarSet, insert!, nrStates, calcLinearState, calcState
-export Factor, vars, entropy, embed, normalize!
+export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setFactor, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
 
@@ -50,6 +50,14 @@ end
 function states(x::Var)
   int(ccall( (:wrapdai_var_states, libdai), Uint32, (_Var,), x.hdl))
 end
+function isequal(v1::Var, v2::Var)
+  label(v1) == label(v2)
+end
+function show(io::IO, v::Var)
+  print(io, "Var(label=$(label(v)), states=$(states(v)))")
+end
+
+
 ############################
 # VarSet
 ############################
@@ -115,12 +123,51 @@ function -(vs::VarSet, v::Var)
   VarSet(ccall( (:wrapdai_varset_sub_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl))
 end
 function calcLinearState(vs::VarSet, states)
-  ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, (_VarSet, Ptr{Csize_t}), vs.hdl, uint64(states))
+  #all(0 .< states)
+  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, (_VarSet, Ptr{Csize_t}), vs.hdl, uint64(states))
 end
-function calcState(vs::VarSet, state)
+function calcState(vs::VarSet, state::Integer)
+  0 < state <= nrStates(vs) || throw(BoundsError())
   states = Array(Csize_t, length(vs))
-  ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), vs.hdl, state, states)
+  ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
+    vs.hdl, state-1, states)
   return states
+end
+function in(v::Var, vs::VarSet)
+  ccall( (:wrapdai_varset_contains, libdai), Bool, (_VarSet, _Var), vs.hdl, v.hdl)
+end
+function isequal(vs1::VarSet, vs2::VarSet)
+  ccall( (:wrapdai_varset_isequal, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
+end
+export vars2, vars3
+function vars2(vs::VarSet)
+  ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl)
+end
+function vars3(vs::VarSet)
+  ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl)
+end
+function vars(vs::VarSet)
+  #map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl), 
+    #(length(vs),), false))
+  ptr = ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl)
+  myvec = (Var)[]
+  for i=1:length(vs)
+    println("Getting $i ptr")
+    push!(myvec, Var(unsafe_load(ptr, i)))
+  end
+  myvec
+end
+function show(io::IO, vs::VarSet)
+  if length(vs) == 0
+    print(io, "VarSet()")
+  else
+    println(io, "VarSet(")
+    for v=1:vars(vs)
+      show(io, v)
+      println(io, ",")
+    end
+    print(io,")")
+  end
 end
 ############################
 # Factor
@@ -151,12 +198,16 @@ end
 function wrapdai_factor_delete(fac::Factor)
   ccall( (:wrapdai_factor_delete, libdai), None, (_Factor,), fac.hdl)
 end
-
+function length(fac::Factor)
+  ccall( (:wrapdai_factor_numvars, libdai), Cint, (_Factor,), fac.hdl)
+end
 function setindex!(fac::Factor, val, index)
-  ccall( (:wrapdai_factor_set, libdai), None, (_Factor, Csize_t, Cdouble), fac.hdl, index, val)
+  0 < index <= nrStates(fac) || throw(BoundsError())
+  ccall( (:wrapdai_factor_set, libdai), None, (_Factor, Csize_t, Cdouble), fac.hdl, index-1, val)
 end
 function getindex(fac::Factor, index)
-  ccall( (:wrapdai_factor_get, libdai), Cdouble, (_Factor, Csize_t), fac.hdl, index)
+  0 < index <= nrStates(fac) || throw(BoundsError())
+  ccall( (:wrapdai_factor_get, libdai), Cdouble, (_Factor, Csize_t), fac.hdl, index-1)
 end
 function vars(fac::Factor)
   VarSet(ccall( (:wrapdai_factor_vars, libdai), _VarSet, (_Factor,), fac.hdl))
@@ -175,6 +226,28 @@ function embed(fac::Factor, vs::VarSet)
 end
 function normalize!(fac::Factor)
   ccall( (:wrapdai_factor_normalize, libdai), Cdouble, (_Factor,), fac.hdl)
+end
+function isequal(fac1::Factor, fac2::Factor)
+  return ccall( (:wrapdai_factor_isequal, libdai), Bool, (_Factor, _Factor), fac1.hdl, fac2.hdl)
+end
+# the below is just a test, I should really copy the memory
+function p(fac::Factor)
+  return pointer_to_array(ccall((:wrapdai_factor_p, libdai), Ptr{Cdouble}, (_Factor,), fac.hdl), (nrStates(fac),), false)
+end
+function show(io::IO, fac::Factor)
+  if length(factor) == 0
+    print(io, "Factor()")
+  else
+    println(io, "Factor(")
+    for v=1:vars(fac)
+      show(io, v)
+      println(io, ",")
+    end
+    for i=1:nrStates(fac)
+      println(io, "$i => $(fac[i])")
+    end
+    print(io,")")
+  end
 end
 ############################
 # FactorGraph
@@ -200,11 +273,11 @@ function wrapdai_fg_delete(fg::FactorGraph)
   ccall( (:wrapdai_fg_delete, libdai), None, (_FactorGraph,), fg.hdl)
 end
 
-function getindex(fg::FactorGraph, ind)
-  Var(ccall( (:wrapdai_fg_var, libdai), _Var, (_FactorGraph, Csize_t), fg.hdl, ind))
-end
 function vars(fg::FactorGraph)
-  FactorGraph(ccall( (:wrapdai_fg_vars, libdai), Ptr{_Var}, (_FactorGraph,), fg.hdl))
+  map(Var, pointer_to_array(
+    (ccall( (:wrapdai_fg_vars, libdai), Ptr{_Var}, (_FactorGraph,), fg.hdl)),
+    (nuVars(fg),),
+    false))
 end
 function copy(fg::FactorGraph)
   FactorGraph(ccall( (:wrapdai_fg_clone, libdai), _FactorGraph, (_FactorGraph,), fg.hdl))
@@ -219,14 +292,21 @@ function numEdges(fg::FactorGraph)
   int(ccall( (:wrapdai_fg_nrEdges, libdai), Csize_t, (_FactorGraph,), fg.hdl))
 end
 function getindex(fg::FactorGraph, ind)
-  Factor(ccall( (:wrapdai_fg_factor, libdai), _Factor, (_FactorGraph, Cint), fg.hdl, ind))
+  0 < ind <= numFactors(fg) || throw(BoundsError())
+  Factor(ccall( (:wrapdai_fg_factor, libdai), _Factor, (_FactorGraph, Cint), fg.hdl, ind-1))
 end
 function setindex!(fg::FactorGraph, fac::Factor, ind)
-  ccall( (:wrapdai_fg_setCFactor, libdai), None, (_FactorGraph, Cint, _Factor), fg.hdl, ind, fac.hdl)
+  0 < ind <= numFactors(fg) || throw(BoundsError())
+  ccall( (:wrapdai_fg_setCFactor, libdai), None, (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
 end
 function setFactor(fg::FactorGraph, ind, fac::Factor, backup::Bool)
+  0 < ind <= numFactors(fg) || throw(BoundsError())
   ccall( (:wrapdai_fg_setCFactor_bool, libdai), None, 
-    (_FactorGraph, Cint, _Factor, Cbool), fg.hdl, ind, fac.hdl, backup)
+    (_FactorGraph, Cint, _Factor, Bool), fg.hdl, ind-1, fac.hdl, backup)
+end
+function getVar(fg::FactorGraph, ind)
+  0 < ind <= numVars(fg) || throw(BoundsError())
+  Var(ccall( (:wrapdai_fg_var, libdai), _Var, (_FactorGraph, Csize_t), fg.hdl, ind-1))
 end
 function clearBackups!(fg::FactorGraph)
   ccall( (:wrapdai_fg_clearBackups, libdai), None, (_FactorGraph,), fg.hdl)
@@ -237,6 +317,24 @@ end
 function readFromFile(fg::FactorGraph, text)
   FactorGraph(ccall( (:wrapdai_fg_readFromFile, libdai), 
     None, (_FactorGraph, Ptr{Uint8}), fg.hdl, text))
+end
+function show(io::IO, fg::FactorGraph)
+  if numVars(fg) == 0
+    print(io, "FactorGraph()")
+  else
+    println(io, "FactorGraph(")
+    for v=1:vars(fg)
+      show(io, v)
+      println(io, ",")
+    end
+    println(io, "Factors: ")
+    for i=1:numFactors(fg)
+      print(io, "$i: ")
+      show(io, fg[i])
+      println(",")
+    end
+    print(io,")")
+  end
 end
 ############################
 # JunctionTree

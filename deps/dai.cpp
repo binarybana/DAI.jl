@@ -96,6 +96,10 @@ VarSet* wrapdai_varset_add_one(VarSet *vs, Var *v) { return new VarSet ((*vs)|(*
 VarSet* wrapdai_varset_sub(VarSet *vs1, VarSet *vs2) { return new VarSet ((*vs1)/(*vs2)); }
 VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v) { return new VarSet ((*vs)/(*v)); }
 
+bool wrapdai_varset_contains(Var *v, VarSet *vs) { return vs->contains(*v); }
+bool wrapdai_varset_isequal(VarSet *vs1, VarSet *vs2) { return *vs1 == *vs2; }
+Var* wrapdai_varset_vars(VarSet *vs) { return &(*(vs->elements().begin())); }
+
     //size_t calcLinearState( VarSet &, map[Var, size_t] &)
     //map[Var, size_t] calcState( VarSet &, size_t)
     
@@ -157,6 +161,8 @@ VarSet* wrapdai_factor_vars(Factor *fac) {
   return vs;
 }
 size_t wrapdai_factor_nrStates(Factor *fac) { return fac->nrStates(); }
+int wrapdai_factor_numvars(Factor *fac) { return fac->vars().size(); }
+
 double wrapdai_factor_entropy(Factor *fac) { return fac->entropy(); }
 Factor* wrapdai_factor_marginal(Factor *fac, VarSet *vs) { 
   // lets try proper copying
@@ -171,6 +177,8 @@ Factor* wrapdai_factor_embed(Factor *fac, VarSet *vs) {
   return newfac;
 }
 double wrapdai_factor_normalize(Factor *fac) { return fac->normalize(); }
+bool wrapdai_factor_isequal(Factor *fac1, Factor *fac2) { return *fac1 == *fac2; }
+double* wrapdai_factor_p(Factor *fac) { return &(*(fac->p().begin())); }
 
 //cdef extern from "dai/factorgraph.h" namespace "dai":
     //cdef cppclass FactorGraph:
@@ -200,15 +208,18 @@ FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs) {
 }
 void wrapdai_fg_delete(FactorGraph *fg) { delete fg; }
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) { return new Var (fg->var(ind)); }
-Var** wrapdai_fg_vars(FactorGraph *fg) { 
-  std::vector<Var> vars = fg->vars(); 
-  int numvars = vars.size();
-  Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
-  for (int i=0; i<numvars; i++) {
-    *varsvec[i] = vars[i];
-  }
-  return varsvec;
-}
+// Safe way:
+//Var** wrapdai_fg_vars(FactorGraph *fg) { 
+  //std::vector<Var> vars = fg->vars(); 
+  //int numvars = vars.size();
+  //Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
+  //for (int i=0; i<numvars; i++) {
+    //*varsvec[i] = vars[i];
+  //}
+  //return varsvec;
+//}
+// Dangerous way:
+const Var* wrapdai_fg_vars(FactorGraph *fg) { return &(*(fg->vars().begin())); }
 FactorGraph* wrapdai_fg_clone(FactorGraph *fg) { return fg->clone(); }
 size_t wrapdai_fg_nrVars(FactorGraph *fg) { return fg->nrVars(); }
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) { return fg->nrFactors(); }
