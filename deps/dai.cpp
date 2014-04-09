@@ -98,7 +98,18 @@ VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v) { return new VarSet ((*vs)/(*
 
 bool wrapdai_varset_contains(Var *v, VarSet *vs) { return vs->contains(*v); }
 bool wrapdai_varset_isequal(VarSet *vs1, VarSet *vs2) { return *vs1 == *vs2; }
-Var* wrapdai_varset_vars(VarSet *vs) { return &(*(vs->elements().begin())); }
+// Safe way:
+Var** wrapdai_varset_vars(VarSet *vs) { 
+  const std::vector<Var> &vars = vs->elements(); 
+  int numvars = vars.size();
+  Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
+  for (int i=0; i<numvars; i++) {
+    varsvec[i] = new Var (vars[i]);
+  }
+  return varsvec;
+}
+// Dangerous way:
+//Var* wrapdai_varset_vars(VarSet *vs) { return &(*(vs->elements().begin())); }
 
     //size_t calcLinearState( VarSet &, map[Var, size_t] &)
     //map[Var, size_t] calcState( VarSet &, size_t)
@@ -209,17 +220,18 @@ FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs) {
 void wrapdai_fg_delete(FactorGraph *fg) { delete fg; }
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) { return new Var (fg->var(ind)); }
 // Safe way:
-//Var** wrapdai_fg_vars(FactorGraph *fg) { 
-  //std::vector<Var> vars = fg->vars(); 
-  //int numvars = vars.size();
-  //Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
-  //for (int i=0; i<numvars; i++) {
-    //*varsvec[i] = vars[i];
-  //}
-  //return varsvec;
-//}
+Var** wrapdai_fg_vars(FactorGraph *fg) { 
+  const std::vector<Var> &vars = fg->vars(); 
+  int numvars = vars.size();
+  Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
+  for (int i=0; i<numvars; i++) {
+    varsvec[i] = new Var (vars[i]);
+  }
+  return varsvec;
+}
 // Dangerous way:
-const Var* wrapdai_fg_vars(FactorGraph *fg) { return &(*(fg->vars().begin())); }
+//const Var* wrapdai_fg_vars(FactorGraph *fg) { return &(*(fg->vars().begin())); }
+
 FactorGraph* wrapdai_fg_clone(FactorGraph *fg) { return fg->clone(); }
 size_t wrapdai_fg_nrVars(FactorGraph *fg) { return fg->nrVars(); }
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) { return fg->nrFactors(); }

@@ -81,9 +81,10 @@ marg = marginal(jt, vs1)
 @test fg[2] == fac2
 @test fg[3] == fac3
 
-p2 = vars2(vs1)
-p3 = vars3(vs1)
-#println(x)
-#println(vs1)
-#println(fac)
-#println(fg)
+#y = vars(fg)
+#x = vars(vs1)
+
+println(x)
+println(vs1)
+println(fac)
+println(fg)

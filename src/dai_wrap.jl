@@ -139,30 +139,24 @@ end
 function isequal(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_isequal, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
 end
-export vars2, vars3
-function vars2(vs::VarSet)
-  ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl)
-end
-function vars3(vs::VarSet)
-  ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl)
-end
 function vars(vs::VarSet)
-  #map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl), 
-    #(length(vs),), false))
-  ptr = ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl)
-  myvec = (Var)[]
-  for i=1:length(vs)
-    println("Getting $i ptr")
-    push!(myvec, Var(unsafe_load(ptr, i)))
-  end
-  myvec
+  return map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
+    int(length(vs))))
+  #ptr = ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl)
+  #myvec = (Var)[]
+  #for i=1:length(vs)
+    #println("Getting $i ptr")
+    #push!(myvec, Var(ptr+(i-1)*sizeof(_Var)))
+    ##push!(myvec, Var(unsafe_load(ptr, i)))
+  #end
+  #myvec
 end
 function show(io::IO, vs::VarSet)
   if length(vs) == 0
     print(io, "VarSet()")
   else
     println(io, "VarSet(")
-    for v=1:vars(vs)
+    for v=vars(vs)
       show(io, v)
       println(io, ",")
     end
@@ -235,14 +229,12 @@ function p(fac::Factor)
   return pointer_to_array(ccall((:wrapdai_factor_p, libdai), Ptr{Cdouble}, (_Factor,), fac.hdl), (nrStates(fac),), false)
 end
 function show(io::IO, fac::Factor)
-  if length(factor) == 0
+  if length(fac) == 0
     print(io, "Factor()")
   else
     println(io, "Factor(")
-    for v=1:vars(fac)
-      show(io, v)
-      println(io, ",")
-    end
+    show(io,vars(fac))
+    println(io, ",")
     for i=1:nrStates(fac)
       println(io, "$i => $(fac[i])")
     end
@@ -276,7 +268,7 @@ end
 function vars(fg::FactorGraph)
   map(Var, pointer_to_array(
     (ccall( (:wrapdai_fg_vars, libdai), Ptr{_Var}, (_FactorGraph,), fg.hdl)),
-    (nuVars(fg),),
+    (numVars(fg),),
     false))
 end
 function copy(fg::FactorGraph)
@@ -323,7 +315,7 @@ function show(io::IO, fg::FactorGraph)
     print(io, "FactorGraph()")
   else
     println(io, "FactorGraph(")
-    for v=1:vars(fg)
+    for v=vars(fg)
       show(io, v)
       println(io, ",")
     end
