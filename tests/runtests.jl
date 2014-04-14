@@ -10,6 +10,11 @@ println("states: ", states(x))
 vs1 = VarSet(x,y)
 vs2 = VarSet(Var(3,3))
 
+@test x in vs1
+@test y in vs1 
+@test !(x in vs2)
+@test !(y in vs2)
+
 vs3 = vs1 + vs2
 
 println("length: ", length(vs3))
@@ -84,7 +89,7 @@ marg = marginal(jt, vs1)
 #y = vars(fg)
 #x = vars(vs1)
 
-println(x)
-println(vs1)
-println(fac)
-println(fg)
+#println(x)
+#println(vs1)
+#println(fac)
+#println(fg)

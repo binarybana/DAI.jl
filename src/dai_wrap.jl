@@ -8,7 +8,7 @@
 import Base.length, Base.getindex, Base.setindex!, Base.copy, Base.isequal, Base.in, Base.show
 
 export Var, label, states
-export VarSet, insert!, nrStates, calcLinearState, calcState
+export VarSet, insert!, nrStates, calcLinearState, calcState, conditionalState
 export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setFactor, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
@@ -122,17 +122,35 @@ end
 function -(vs::VarSet, v::Var)
   VarSet(ccall( (:wrapdai_varset_sub_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl))
 end
-function calcLinearState(vs::VarSet, states)
+
+function calcLinearState(vs::VarSet, statevals)
   #all(0 .< states)
-  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, (_VarSet, Ptr{Csize_t}), vs.hdl, uint64(states))
+  all(0 .< statevals .< [states(v) for v=vars(vs)])
+  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
+    (_VarSet, Ptr{Csize_t}), vs.hdl, uint64(statevals)-1)
 end
+
+function calcLinearState(vs::VarSet, statevals, orig::VarSet)
+  all(0 .< statevals .< [states(v) for v=vars(vs)])
+  assert(length(orig) == length(states))
+  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
+    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals)-1, orig.hdl)
+end
+
 function calcState(vs::VarSet, state::Integer)
   0 < state <= nrStates(vs) || throw(BoundsError())
   states = Array(Csize_t, length(vs))
-  ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
+  1 .+ ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
     vs.hdl, state-1, states)
   return states
 end
+
+function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
+  1 + ccall( (:wrapdai_varset_conditionalState, libdai), Csize_t, 
+    (_Var, _VarSet, Csize_t, Csize_t), 
+    v.hdl, pars.hdl, vstate-1, parstate-1)
+end
+
 function in(v::Var, vs::VarSet)
   ccall( (:wrapdai_varset_contains, libdai), Bool, (_VarSet, _Var), vs.hdl, v.hdl)
 end
@@ -216,7 +234,7 @@ function marginal(fac::Factor, vs::VarSet)
   Factor(ccall( (:wrapdai_factor_marginal, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
 function embed(fac::Factor, vs::VarSet)
-  ccall( (:wrapdai_factor_embed, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl)
+  Factor(ccall( (:wrapdai_factor_embed, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
 function normalize!(fac::Factor)
   ccall( (:wrapdai_factor_normalize, libdai), Cdouble, (_Factor,), fac.hdl)

@@ -96,7 +96,7 @@ VarSet* wrapdai_varset_add_one(VarSet *vs, Var *v) { return new VarSet ((*vs)|(*
 VarSet* wrapdai_varset_sub(VarSet *vs1, VarSet *vs2) { return new VarSet ((*vs1)/(*vs2)); }
 VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v) { return new VarSet ((*vs)/(*v)); }
 
-bool wrapdai_varset_contains(Var *v, VarSet *vs) { return vs->contains(*v); }
+bool wrapdai_varset_contains(VarSet *vs, Var *v) { return vs->contains(*v); }
 bool wrapdai_varset_isequal(VarSet *vs1, VarSet *vs2) { return *vs1 == *vs2; }
 // Safe way:
 Var** wrapdai_varset_vars(VarSet *vs) { 
@@ -114,8 +114,9 @@ Var** wrapdai_varset_vars(VarSet *vs) {
     //size_t calcLinearState( VarSet &, map[Var, size_t] &)
     //map[Var, size_t] calcState( VarSet &, size_t)
     
-size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states) {
-  std::vector<Var>& vars = vs->elements();
+size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states, VarSet* orig=NULL) {
+  std::vector<Var>& vars = orig ? orig->elements() : vs->elements();
+
   std::map<Var,size_t> tempmap;
   for (int i=0; i < vs->size(); i++) {
     tempmap[vars[i]] = states[i];
@@ -123,7 +124,7 @@ size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states) {
   return calcLinearState(*vs, tempmap);
 }
 
-void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *states) {
+void wrapdai_varset_calcState(VarSet *vs, size_t state, /*VarSet *origvs,*/ size_t *states) {
   // Need to preallocate vars and states
   std::map<Var,size_t> tempmap = calcState(*vs, state);
   int counter = 0;
@@ -131,6 +132,12 @@ void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *
     //vars[counter] =  it->first
     states[counter++] = it->second;
   }
+}
+
+size_t wrapdai_varset_conditionalState(Var* v, VarSet *vs, size_t state, size_t parstates) {
+  std::map<Var,size_t> tempmap = calcState(*vs, parstates);
+  tempmap[*v] = state;
+  return calcLinearState((*vs)|(*v), tempmap);
 }
 
 //cdef extern from "dai/properties.h" namespace "dai":

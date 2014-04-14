@@ -25,13 +25,14 @@ VarSet* wrapdai_varset_add(VarSet *vs1, VarSet *vs2);
 VarSet* wrapdai_varset_sub(VarSet *vs1, VarSet *vs2);
 VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v);
 
-bool wrapdai_varset_contains(Var *v, VarSet *vs);
+bool wrapdai_varset_contains(VarSet *vs, Var *v);
 bool wrapdai_varset_isequal(VarSet *v2, VarSet *vs2);
 
 Var** wrapdai_varset_vars(VarSet *vs);
 
-size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states);
+size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states, VarSet* orig);
 void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *states);
+size_t wrapdai_varset_conditionalState(Var* v, VarSet *vs, size_t state, size_t parstates);
 //cdef extern from "dai/properties.h" namespace "dai":
     //cdef cppclass PropertySet:
         //PropertySet()
