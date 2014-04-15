@@ -27,6 +27,7 @@ VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v);
 
 bool wrapdai_varset_contains(VarSet *vs, Var *v);
 bool wrapdai_varset_isequal(VarSet *v2, VarSet *vs2);
+bool wrapdai_varset_isless(VarSet *v2, VarSet *vs2);
 
 Var** wrapdai_varset_vars(VarSet *vs);
 

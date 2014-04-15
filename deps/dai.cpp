@@ -98,6 +98,7 @@ VarSet* wrapdai_varset_sub_one(VarSet *vs, Var *v) { return new VarSet ((*vs)/(*
 
 bool wrapdai_varset_contains(VarSet *vs, Var *v) { return vs->contains(*v); }
 bool wrapdai_varset_isequal(VarSet *vs1, VarSet *vs2) { return *vs1 == *vs2; }
+bool wrapdai_varset_isless(VarSet *vs1, VarSet *vs2) { return *vs1 << *vs2; }
 // Safe way:
 Var** wrapdai_varset_vars(VarSet *vs) { 
   const std::vector<Var> &vars = vs->elements(); 

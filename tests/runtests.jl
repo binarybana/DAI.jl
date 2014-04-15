@@ -17,25 +17,33 @@ vs2 = VarSet(Var(3,3))
 
 vs3 = vs1 + vs2
 
+@test vs1 < vs3
+@test !(vs1 > vs3)
+@test !(vs1 >= vs3)
+@test vs1 <= vs3
+@test vs2 < vs3
+@test vs3 >= vs2
+
 println("length: ", length(vs3))
 println("nrstates: ", nrStates(vs3))
 
 for i=1:nrStates(vs3)
   println("#################")
   states = calcState(vs3, i)
-  state = calcLinearState(vs3, states)
   print("state $i -> states: $(states')")
+  state = calcLinearState(vs3, states)
   println("-> state: $state")
   @test i==state
 end
 
-testvals = zeros(int(nrStates(vs3)))
-testvals[1] = 3.0
-testvals[2] = 3.0
-testvals[12] = 3.0
+#testvals = zeros(int(nrStates(vs3)))
+#testvals[1] = 3.0
+#testvals[2] = 3.0
+#testvals[12] = 3.0
 
-fac = Factor(vs3, rand(int(nrStates(vs1))))
-#fac = Factor(vs3, testvals)
+testvals = rand(int(nrStates(vs3)))
+
+fac = Factor(vs3, testvals)
 
 println("normalize factor: ", normalize!(fac))
 tot = 0.0

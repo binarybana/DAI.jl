@@ -5,7 +5,7 @@
 #typealias ptrdiff_t Clong
 #typealias size_t Culong
 #typealias wchar_t Cint
-import Base.length, Base.getindex, Base.setindex!, Base.copy, Base.isequal, Base.in, Base.show
+import Base: length, getindex, setindex!, copy, isequal, in, show, isless
 
 export Var, label, states
 export VarSet, insert!, nrStates, calcLinearState, calcState, conditionalState
@@ -124,25 +124,25 @@ function -(vs::VarSet, v::Var)
 end
 
 function calcLinearState(vs::VarSet, statevals)
-  #all(0 .< states)
-  all(0 .< statevals .< [states(v) for v=vars(vs)])
+  all(0 .< statevals .<= [states(v) for v=vars(vs)])
+  assert(length(vs) == length(statevals))
   1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
-    (_VarSet, Ptr{Csize_t}), vs.hdl, uint64(statevals)-1)
+    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals).-1, C_NULL)
 end
 
 function calcLinearState(vs::VarSet, statevals, orig::VarSet)
-  all(0 .< statevals .< [states(v) for v=vars(vs)])
-  assert(length(orig) == length(states))
+  all(0 .< statevals .<= [states(v) for v=vars(vs)])
+  assert(length(orig) == length(statevals))
   1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
-    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals)-1, orig.hdl)
+    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals).-1, orig.hdl)
 end
 
 function calcState(vs::VarSet, state::Integer)
   0 < state <= nrStates(vs) || throw(BoundsError())
   states = Array(Csize_t, length(vs))
-  1 .+ ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
+  ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
     vs.hdl, state-1, states)
-  return states
+  return states .+ 1
 end
 
 function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
@@ -157,17 +157,12 @@ end
 function isequal(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_isequal, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
 end
+function isless(vs1::VarSet, vs2::VarSet)
+  ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
+end
 function vars(vs::VarSet)
-  return map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
+  map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
     int(length(vs))))
-  #ptr = ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl)
-  #myvec = (Var)[]
-  #for i=1:length(vs)
-    #println("Getting $i ptr")
-    #push!(myvec, Var(ptr+(i-1)*sizeof(_Var)))
-    ##push!(myvec, Var(unsafe_load(ptr, i)))
-  #end
-  #myvec
 end
 function show(io::IO, vs::VarSet)
   if length(vs) == 0
@@ -204,6 +199,7 @@ function Factor(vs::VarSet)
   Factor(ccall( (:wrapdai_factor_create_varset, libdai), _Factor, (_VarSet,), vs.hdl))
 end
 function Factor(vs::VarSet, vals::Vector{Float64})
+  assert(length(vals) == nrStates(vs))
   Factor(ccall( (:wrapdai_factor_create_varset_vals, libdai), _Factor, (_VarSet, Ptr{Cdouble}), vs.hdl, vals))
 end
 
