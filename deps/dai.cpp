@@ -174,26 +174,19 @@ void wrapdai_factor_delete(Factor *fac) { delete fac; }
 void wrapdai_factor_set(Factor *fac, size_t index, double val) { fac->set(index, val); }
 double wrapdai_factor_get(Factor *fac, size_t index) { return fac->get(index); }
 VarSet* wrapdai_factor_vars(Factor *fac) { 
-  // lets try proper copying
-  VarSet *vs = new VarSet();
-  *vs = fac->vars();
-  return vs;
+  return new VarSet (fac->vars());
 }
+// unsafe but could be interesting to try...:
+VarSet* wrapdai_factor_vars_unsafe(Factor *fac) { return &(fac->vars()); }
 size_t wrapdai_factor_nrStates(Factor *fac) { return fac->nrStates(); }
 int wrapdai_factor_numvars(Factor *fac) { return fac->vars().size(); }
 
 double wrapdai_factor_entropy(Factor *fac) { return fac->entropy(); }
 Factor* wrapdai_factor_marginal(Factor *fac, VarSet *vs) { 
-  // lets try proper copying
-  Factor *newfac = new Factor();
-  *newfac = fac->marginal(*vs);
-  return newfac;
+  return new Factor (fac->marginal(*vs));
 }
 Factor* wrapdai_factor_embed(Factor *fac, VarSet *vs) { 
-  // lets try proper copying
-  Factor *newfac = new Factor();
-  *newfac = fac->embed(*vs);
-  return newfac;
+  return new Factor (fac->embed(*vs));
 }
 double wrapdai_factor_normalize(Factor *fac) { return fac->normalize(); }
 bool wrapdai_factor_isequal(Factor *fac1, Factor *fac2) { return *fac1 == *fac2; }
@@ -245,8 +238,15 @@ size_t wrapdai_fg_nrVars(FactorGraph *fg) { return fg->nrVars(); }
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) { return fg->nrFactors(); }
 size_t wrapdai_fg_nrEdges(FactorGraph *fg) { return fg->nrEdges(); }
 Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) { return new Factor (fg->factor(ind)); }
-void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac);) }
-void wrapdai_fg_setFactor_bool(FactorGraph *fg, int ind, Factor *fac, bool backup) { TRYCATCH(fg->setFactor(ind, *fac, backup);) }
+// unsafe but would be interesting to try...:
+//Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) { return &(fg->factor(ind)); }
+
+void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac); }
+void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac, true); }
+
+//void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac);) }
+//void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac, true);) }
+
 void wrapdai_fg_clearBackups(FactorGraph *fg) { TRYCATCH(fg->clearBackups();) }
 void wrapdai_fg_restoreFactors(FactorGraph *fg) { TRYCATCH(fg->restoreFactors();) }
 void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) { fg->ReadFromFile(text); }
