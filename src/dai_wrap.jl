@@ -8,7 +8,7 @@
 import Base: length, getindex, setindex!, copy, isequal, in, show, isless
 
 export Var, label, states
-export VarSet, insert!, labels, nrStates, calcLinearState, calcState, conditionalState
+export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState
 export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
@@ -151,6 +151,8 @@ function calcState(vs::VarSet, state::Integer)
 end
 
 function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
+  0 < vstate <= states(v) || throw(BoundsError())
+  0 < parstate <= nrStates(pars) || throw(BoundsError())
   1 + ccall( (:wrapdai_varset_conditionalState, libdai), Csize_t, 
     (_Var, _VarSet, Csize_t, Csize_t), 
     v.hdl, pars.hdl, vstate-1, parstate-1)
@@ -239,9 +241,13 @@ function entropy(fac::Factor)
   ccall( (:wrapdai_factor_entropy, libdai), Cdouble, (_Factor,), fac.hdl)
 end
 function marginal(fac::Factor, vs::VarSet)
+  vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
+  assert(ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vs.hdl, vsp))
   Factor(ccall( (:wrapdai_factor_marginal, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
 function embed(fac::Factor, vs::VarSet)
+  vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
+  assert(ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vsp, vs.hdl))
   Factor(ccall( (:wrapdai_factor_embed, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
 function normalize!(fac::Factor)
