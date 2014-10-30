@@ -102,13 +102,66 @@ x[1] += 2.0
 @test facc != fac
 println("Factor copying checks out")
 
+#Test fg and jtree copying
+fgc = copy(fg)
+@test fgc == fg
+jtc = copy(jt)
+#@test jtc == jt # doesn't exist yet
+
 ## Test fg equality
-#setBackedFactor!(fg,1,
+setBackedFactor!(fgc,1,facc)
+@test fgc != fg
+restoreFactors!(fgc)
+@test fgc == fg
 
+## Test unsafe vars
+facc = copy(fac)
+@test facc == fac
+vs = vars(fac) 
+vsc1 = vars(fac) 
+vsc2 = copy(vars(fac))
+temp = vars(copy(fac))
+@test vsc2 == temp
 
+@test vs == vsc1
+@test vs == vsc2
+@test vsc1 == vsc2
+vs2 = vs - y
+@test vs == vsc1
+@test vs == vsc2
+@test vsc1 == vsc2
 
-#
-#
+@test vs2 != vsc1
+@test vs2 != vsc2
+@test vs2 != vs
+
+@test facc == fac
+
+erase!(vs, y)
+
+@test facc != fac #uhh.. fac is no longer a proper factor here
+@show fac # because vs = vars(fac) is tampering directly with internals
+
+@test vs == vsc1
+@test vs != vsc2
+@test vsc1 != vsc2
+
+@test vs2 == vsc1
+@test vs2 != vsc2
+@test vs2 == vs
+
+insert!(vs, y)
+
+@test vs == vsc1
+@test vs == vsc2
+@test vsc1 == vsc2
+
+@test vs2 != vsc1
+@test vs2 != vsc2
+@test vs2 != vs
+
+@test facc == fac
+
 #y = vars(fg)
 #x = vars(vs1)
 

@@ -15,6 +15,7 @@ unsigned int wrapdai_var_states(Var *hdl);
 
 VarSet* wrapdai_varset_create();
 void wrapdai_varset_delete(VarSet *ps);
+VarSet* wrapdai_varset_clone(VarSet *vs);
 VarSet* wrapdai_varset_insert(VarSet *vs, Var *v);
 int wrapdai_varset_nrStates(VarSet *vs);
 int wrapdai_varset_size(VarSet *vs);
@@ -87,6 +88,7 @@ void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) ;
 JTree* wrapdai_jt_create();
 JTree* wrapdai_jt_create_fgps(FactorGraph *fg, PropertySet *ps);
 void wrapdai_jt_delete(JTree *jt);
+JTree* wrapdai_jt_clone(JTree *jt);
 void wrapdai_jt_init(JTree *jt);
 void wrapdai_jt_run(JTree *jt);
 size_t wrapdai_jt_iterations(JTree *jt);

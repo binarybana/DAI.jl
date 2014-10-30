@@ -63,9 +63,9 @@ end
 ############################
 type VarSet
   hdl::_VarSet
-  function VarSet(hdl::_VarSet)
+  function VarSet(hdl::_VarSet, own=true)
     v = new(hdl)
-    finalizer(v, wrapdai_varset_delete)
+    own && finalizer(v, wrapdai_varset_delete)
     v
   end
 end
@@ -89,10 +89,13 @@ end
 function wrapdai_varset_delete(x::VarSet)
   ccall( (:wrapdai_varset_delete, libdai), None, (_VarSet,), x.hdl)
 end
+function copy(vs::VarSet)
+  VarSet(ccall( (:wrapdai_varset_clone, libdai), _VarSet, (_VarSet,), vs.hdl))
+end
 
 function insert!(vs::VarSet, v::Var)
   ccall( (:wrapdai_varset_insert, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl)
-  nothing
+  vs
 end
 function labels(vs::VarSet)
   ptrs = pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
@@ -107,7 +110,7 @@ function length(vs::VarSet)
 end
 function erase!(vs::VarSet, v::Var)
   ccall( (:wrapdai_varset_erase, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl)
-  nothing
+  vs
 end
 function sub!(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_remove, libdai), _VarSet, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
@@ -178,7 +181,7 @@ function isless(vs1::VarSet, vs2::VarSet)
 end
 function vars(vs::VarSet)
   map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
-    int(length(vs))))
+    int(length(vs)),false))
 end
 function show(io::IO, vs::VarSet)
   if length(vs) == 0
@@ -244,7 +247,7 @@ function copy(fac::Factor)
   Factor(ccall( (:wrapdai_factor_clone, libdai), _Factor, (_Factor,), fac.hdl))
 end
 function vars(fac::Factor)
-  VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl))
+  VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl),false)
 end
 function nrStates(fac::Factor)
   int(ccall( (:wrapdai_factor_nrStates, libdai), Csize_t, (_Factor,), fac.hdl))
@@ -341,7 +344,7 @@ function ==(fg1::FactorGraph, fg2::FactorGraph)
   nf2 = numFactors(fg2)
   nf1 == nf2 || return false
   for i = 1:nf1
-    nf1[i] == nf2[i] || return false
+    fg1[i] == fg2[i] || return false
   end
   return true
 end
@@ -402,6 +405,9 @@ function JTree(fg::FactorGraph, props="[updates=HUGIN]")
 end
 function wrapdai_jtree_delete(jt::JTree)
   ccall( (:wrapdai_jt_delete, libdai), None, (_JTree,), jt.hdl)
+end
+function copy(jt::JTree)
+  ccall( (:wrapdai_jt_clone, libdai), _JTree, (_JTree,), jt.hdl)
 end
 
 function init!(jt::JTree)

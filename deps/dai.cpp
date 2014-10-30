@@ -80,6 +80,7 @@ VarSet* wrapdai_varset_insert(VarSet *vs, Var *v) {
   TRYCATCH(return static_cast<VarSet*>(&(vs->insert(*v)));)
 }
 
+VarSet* wrapdai_varset_clone(VarSet *vs) { return new VarSet(*vs); }
 unsigned int wrapdai_varset_nrStates(VarSet *vs) { 
   BigInt num = vs->nrStates(); 
   return (unsigned int) BigInt_size_t(num);
@@ -276,6 +277,7 @@ void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) { fg->ReadFromFile(tex
 JTree* wrapdai_jt_create() { return new JTree(); }
 void wrapdai_jt_delete(JTree *jt) { delete jt; }
 JTree* wrapdai_jt_create_fgps(FactorGraph *fg, PropertySet *ps) { return new JTree(*fg, *ps); }
+JTree* wrapdai_jt_clone(JTree *jt) { return jt->clone(); }
 void wrapdai_jt_init(JTree *jt) { jt->init(); }
 void wrapdai_jt_run(JTree *jt) { jt->run(); }
 size_t wrapdai_jt_iterations(JTree *jt) { return jt->Iterations(); }
