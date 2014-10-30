@@ -94,6 +94,21 @@ marg = marginal(jt, vs1)
 @test fg[2] == fac2
 @test fg[3] == fac3
 
+## Test factor copying
+facc = copy(fac)
+@test facc == fac
+x = p(facc)
+x[1] += 2.0
+@test facc != fac
+println("Factor copying checks out")
+
+## Test fg equality
+#setBackedFactor!(fg,1,
+
+
+
+#
+#
 #y = vars(fg)
 #x = vars(vs1)
 

@@ -34,6 +34,9 @@ Var** wrapdai_varset_vars(VarSet *vs);
 size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states, VarSet* orig);
 void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *states);
 size_t wrapdai_varset_conditionalState(Var* v, VarSet *vs, size_t state, size_t parstates);
+size_t wrapdai_varset_conditionalState2(Var* v1, Var* v2, VarSet *vs, size_t state1, 
+    size_t state2, size_t parstates);
+
 //cdef extern from "dai/properties.h" namespace "dai":
     //cdef cppclass PropertySet:
         //PropertySet()
@@ -47,6 +50,7 @@ Factor* wrapdai_factor_create_empty() ;
 Factor* wrapdai_factor_create_var(Var *v) ;
 Factor* wrapdai_factor_create_varset(VarSet *vs) ;
 Factor* wrapdai_factor_create_varset_vals(VarSet *vs, double *vals);
+Factor* wrapdai_factor_clone(Factor *fac);
 void wrapdai_factor_delete(Factor *fac) ;
 void wrapdai_factor_set(Factor *fac, size_t index, double val) ;
 double wrapdai_factor_get(Factor *fac, size_t index) ;
@@ -72,6 +76,7 @@ size_t wrapdai_fg_nrVars(FactorGraph *fg) ;
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) ;
 size_t wrapdai_fg_nrEdges(FactorGraph *fg) ;
 Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) ;
+//Factor* wrapdai_fg_factor_unsafe(FactorGraph *fg, int ind);
 void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) ;
 void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) ;
 void wrapdai_fg_clearBackups(FactorGraph *fg) ;

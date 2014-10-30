@@ -5,10 +5,10 @@
 #typealias ptrdiff_t Clong
 #typealias size_t Culong
 #typealias wchar_t Cint
-import Base: length, getindex, setindex!, copy, isequal, in, show, isless
+import Base: length, getindex, setindex!, copy, ==, in, show, isless
 
 export Var, label, states
-export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState
+export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalState2
 export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
@@ -50,7 +50,7 @@ end
 function states(x::Var)
   int(ccall( (:wrapdai_var_states, libdai), Uint32, (_Var,), x.hdl))
 end
-function isequal(v1::Var, v2::Var)
+function ==(v1::Var, v2::Var)
   label(v1) == label(v2)
 end
 function show(io::IO, v::Var)
@@ -158,10 +158,19 @@ function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
     v.hdl, pars.hdl, vstate-1, parstate-1)
 end
 
+function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1::Int, vstate2::Int, parstate::Int)
+  0 < vstate1 <= states(v1) || throw(BoundsError())
+  0 < vstate2 <= states(v2) || throw(BoundsError())
+  0 < parstate <= nrStates(pars) || throw(BoundsError())
+  1 + ccall( (:wrapdai_varset_conditionalState2, libdai), Csize_t, 
+    (_Var, _Var, _VarSet, Csize_t, Csize_t, Csize_t), 
+    v1.hdl, v2.hdl, pars.hdl, vstate1-1, vstate2-1, parstate-1)
+end
+
 function in(v::Var, vs::VarSet)
   ccall( (:wrapdai_varset_contains, libdai), Bool, (_VarSet, _Var), vs.hdl, v.hdl)
 end
-function isequal(vs1::VarSet, vs2::VarSet)
+function ==(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_isequal, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
 end
 function isless(vs1::VarSet, vs2::VarSet)
@@ -231,8 +240,11 @@ function getindex(fac::Factor, index)
   0 < index <= nrStates(fac) || throw(BoundsError())
   ccall( (:wrapdai_factor_get, libdai), Cdouble, (_Factor, Csize_t), fac.hdl, index-1)
 end
+function copy(fac::Factor)
+  Factor(ccall( (:wrapdai_factor_clone, libdai), _Factor, (_Factor,), fac.hdl))
+end
 function vars(fac::Factor)
-  VarSet(ccall( (:wrapdai_factor_vars, libdai), _VarSet, (_Factor,), fac.hdl))
+  VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl))
 end
 function nrStates(fac::Factor)
   int(ccall( (:wrapdai_factor_nrStates, libdai), Csize_t, (_Factor,), fac.hdl))
@@ -253,7 +265,7 @@ end
 function normalize!(fac::Factor)
   ccall( (:wrapdai_factor_normalize, libdai), Cdouble, (_Factor,), fac.hdl)
 end
-function isequal(fac1::Factor, fac2::Factor)
+function ==(fac1::Factor, fac2::Factor)
   return ccall( (:wrapdai_factor_isequal, libdai), Bool, (_Factor, _Factor), fac1.hdl, fac2.hdl)
 end
 # the below is just a test, I should really copy the memory
@@ -323,6 +335,15 @@ function setindex!(fg::FactorGraph, fac::Factor, ind)
   0 < ind <= numFactors(fg) || throw(BoundsError())
   ccall( (:wrapdai_fg_setFactor_backup, libdai), None, 
     (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
+end
+function ==(fg1::FactorGraph, fg2::FactorGraph)
+  nf1 = numFactors(fg1)
+  nf2 = numFactors(fg2)
+  nf1 == nf2 || return false
+  for i = 1:nf1
+    nf1[i] == nf2[i] || return false
+  end
+  return true
 end
 function setBackedFactor!(fg::FactorGraph, ind, fac::Factor)
   0 < ind <= numFactors(fg) || throw(BoundsError())
