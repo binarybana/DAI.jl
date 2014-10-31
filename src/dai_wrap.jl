@@ -125,10 +125,31 @@ function calcLinearState(vs::VarSet, statevals)
     0 < statevals[i] <= states(v) || throw(BoundsError())
   end
   assert(length(vs) == length(statevals))
-  broadcast!(-,statevals,statevals,1)
+  tot = 0
+  for i=1:length(statevals)
+    tot += (statevals[i]-1)*2^(i-1)
+  end
+  #if (tot+1) != pris_calcLinearState(vs,statevals)
+    #@show (tot+1)
+    #@show pris_calcLinearState(vs,statevals)
+    #throw(Exception())
+  #end
+  tot+1
+end
+
+function pris_calcLinearState(vs::VarSet, statevals)
+  for (i,v) in enumerate(vars(vs))
+    0 < statevals[i] <= states(v) || throw(BoundsError())
+  end
+  assert(length(vs) == length(statevals))
+  for i=1:length(statevals)
+    statevals[i] -= 1
+  end
   ret = 1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
     (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint(statevals), C_NULL)
-  broadcast!(+,statevals,statevals,1)
+  for i=1:length(statevals)
+    statevals[i] += 1
+  end
   ret
 end
 
@@ -142,10 +163,14 @@ function calcLinearState(vs::VarSet, statevals, orig::VarSet)
     end
   end
   assert(length(orig) == length(statevals))
-  broadcast!(-,statevals,statevals,1)
+  for i=1:length(statevals)
+    statevals[i] -= 1
+  end
   ret = 1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
     (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint(statevals), orig.hdl)
-  broadcast!(+,statevals,statevals,1)
+  for i=1:length(statevals)
+    statevals[i] += 1
+  end
   ret
 end
 
