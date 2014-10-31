@@ -13,7 +13,6 @@ export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
 
-typealias _Var Ptr{Void}
 typealias _VarSet Ptr{Void}
 typealias _PropertySet Ptr{Void}
 typealias _Factor Ptr{Void}
@@ -24,34 +23,27 @@ typealias _JTree Ptr{Void}
 # Var
 ############################
 
-type Var
-  hdl::_Var
-  function Var(hdl::_Var)
-    v = new(hdl)
-    finalizer(v, wrapdai_var_destroy)
-    v
+immutable Var
+  label::Csize_t
+  states::Csize_t
+  function Var(label, states)
+    assert(label>=0)
+    assert(states>0)
+    new(label,states)
   end
 end
 
-function Var(label, states)
-  assert(label>=0)
-  assert(states>0)
-  hdl = ccall( (:wrapdai_var_create, libdai), _Var, (Csize_t, Csize_t), label, states)
-  return Var(hdl)
-end
-
-function wrapdai_var_destroy(x::Var)
-  ccall( (:wrapdai_var_destroy, libdai), None, (_Var,), x.hdl)
-end
+typealias _Var Ptr{Var}
 
 function label(x::Var)
-  int(ccall( (:wrapdai_var_label, libdai), Uint32, (_Var,), x.hdl))
+  int(x.label)
 end
 function states(x::Var)
-  int(ccall( (:wrapdai_var_states, libdai), Uint32, (_Var,), x.hdl))
+  int(x.states)
 end
 function ==(v1::Var, v2::Var)
-  label(v1) == label(v2)
+  v1.label == v2.label
+  v1.states == v2.states
 end
 function show(io::IO, v::Var)
   print(io, "Var(label=$(label(v)), states=$(states(v)))")
@@ -78,7 +70,7 @@ function VarSet(vars...)
   assert(eltype(vars) == Var)
   vsp = ccall( (:wrapdai_varset_create, libdai), _VarSet, ())
   for var in vars
-    ccall( (:wrapdai_varset_insert, libdai), _VarSet, (_VarSet, _Var), vsp, var.hdl)
+    ccall( (:wrapdai_varset_insert, libdai), _VarSet, (_VarSet, _Var), vsp, &var)
   end
   VarSet(vsp)
 end
@@ -94,13 +86,13 @@ function copy(vs::VarSet)
 end
 
 function insert!(vs::VarSet, v::Var)
-  ccall( (:wrapdai_varset_insert, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl)
+  ccall( (:wrapdai_varset_insert, libdai), _VarSet, (_VarSet, _Var), vs.hdl, &v)
   vs
 end
 function labels(vs::VarSet)
-  ptrs = pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
+  ptrs = pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl), 
     int(length(vs)))
-  [int(ccall( (:wrapdai_var_label, libdai), Uint32, (_Var,), x)) for x in ptrs]
+  Int[label(x) for x in ptrs]
 end
 function nrStates(vs::VarSet)
   ccall( (:wrapdai_varset_nrStates, libdai), Cint, (_VarSet,), vs.hdl)
@@ -109,7 +101,7 @@ function length(vs::VarSet)
   ccall( (:wrapdai_varset_size, libdai), Cint, (_VarSet,), vs.hdl)
 end
 function erase!(vs::VarSet, v::Var)
-  ccall( (:wrapdai_varset_erase, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl)
+  ccall( (:wrapdai_varset_erase, libdai), _VarSet, (_VarSet, _Var), vs.hdl, &v)
   vs
 end
 function sub!(vs1::VarSet, vs2::VarSet)
@@ -122,13 +114,13 @@ function +(vs1::VarSet, vs2::VarSet)
   VarSet(ccall( (:wrapdai_varset_add, libdai), _VarSet, (_VarSet, _VarSet), vs1.hdl, vs2.hdl))
 end
 function +(vs::VarSet, v::Var)
-  VarSet(ccall( (:wrapdai_varset_add_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl))
+  VarSet(ccall( (:wrapdai_varset_add_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, &v))
 end
 function -(vs1::VarSet, vs2::VarSet)
   VarSet(ccall( (:wrapdai_varset_sub, libdai), _VarSet, (_VarSet, _VarSet), vs1.hdl, vs2.hdl))
 end
 function -(vs::VarSet, v::Var)
-  VarSet(ccall( (:wrapdai_varset_sub_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, v.hdl))
+  VarSet(ccall( (:wrapdai_varset_sub_one, libdai), _VarSet, (_VarSet, _Var), vs.hdl, &v))
 end
 
 function calcLinearState(vs::VarSet, statevals)
@@ -157,8 +149,7 @@ function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
   0 < vstate <= states(v) || throw(BoundsError())
   0 < parstate <= nrStates(pars) || throw(BoundsError())
   1 + ccall( (:wrapdai_varset_conditionalState, libdai), Csize_t, 
-    (_Var, _VarSet, Csize_t, Csize_t), 
-    v.hdl, pars.hdl, vstate-1, parstate-1)
+    (_Var, _VarSet, Csize_t, Csize_t), &v, pars.hdl, vstate-1, parstate-1)
 end
 
 function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1::Int, vstate2::Int, parstate::Int)
@@ -167,11 +158,11 @@ function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1::Int, vstate2
   0 < parstate <= nrStates(pars) || throw(BoundsError())
   1 + ccall( (:wrapdai_varset_conditionalState2, libdai), Csize_t, 
     (_Var, _Var, _VarSet, Csize_t, Csize_t, Csize_t), 
-    v1.hdl, v2.hdl, pars.hdl, vstate1-1, vstate2-1, parstate-1)
+    &v1, &v2, pars.hdl, vstate1-1, vstate2-1, parstate-1)
 end
 
 function in(v::Var, vs::VarSet)
-  ccall( (:wrapdai_varset_contains, libdai), Bool, (_VarSet, _Var), vs.hdl, v.hdl)
+  ccall( (:wrapdai_varset_contains, libdai), Bool, (_VarSet, _Var), vs.hdl, &v)
 end
 function ==(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_isequal, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
@@ -180,8 +171,8 @@ function isless(vs1::VarSet, vs2::VarSet)
   ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vs1.hdl, vs2.hdl)
 end
 function vars(vs::VarSet)
-  map(Var, pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vs.hdl), 
-    int(length(vs)),false))
+  pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vs.hdl), 
+    int(length(vs)),false)
 end
 function show(io::IO, vs::VarSet)
   if length(vs) == 0
@@ -209,7 +200,7 @@ type Factor
 end
 function Factor(v::Var...)
   if length(v) == 1
-    return Factor(ccall( (:wrapdai_factor_create_var, libdai), _Factor, (_Var,), v[1].hdl))
+    return Factor(ccall( (:wrapdai_factor_create_var, libdai), _Factor, (_Var,), &v[1]))
   else
     return Factor(Varset(v))
   end
@@ -231,9 +222,9 @@ end
 function labels(fac::Factor)
   vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
   lvsp = ccall( (:wrapdai_varset_size, libdai), Cint, (_VarSet,), vsp)
-  ptrs = pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), Ptr{_Var}, (_VarSet,), vsp), 
+  ptrs = pointer_to_array(ccall( (:wrapdai_varset_vars, libdai), _Var, (_VarSet,), vsp), 
     int(lvsp))
-  [int(ccall( (:wrapdai_var_label, libdai), Uint32, (_Var,), x)) for x in ptrs]
+  Int[label(x) for x in ptrs]
 end
 function setindex!(fac::Factor, val, index)
   0 < index <= nrStates(fac) || throw(BoundsError())
@@ -242,6 +233,9 @@ end
 function getindex(fac::Factor, index)
   0 < index <= nrStates(fac) || throw(BoundsError())
   ccall( (:wrapdai_factor_get, libdai), Cdouble, (_Factor, Csize_t), fac.hdl, index-1)
+end
+function in(var::Var,fac::Factor)
+  var in vars(fac)
 end
 function copy(fac::Factor)
   Factor(ccall( (:wrapdai_factor_clone, libdai), _Factor, (_Factor,), fac.hdl))
@@ -313,10 +307,7 @@ function wrapdai_fg_delete(fg::FactorGraph)
 end
 
 function vars(fg::FactorGraph)
-  map(Var, pointer_to_array(
-    (ccall( (:wrapdai_fg_vars, libdai), Ptr{_Var}, (_FactorGraph,), fg.hdl)),
-    (numVars(fg),),
-    false))
+  pointer_to_array((ccall( (:wrapdai_fg_vars, libdai), _Var, (_FactorGraph,), fg.hdl)),(numVars(fg),),false)
 end
 function copy(fg::FactorGraph)
   FactorGraph(ccall( (:wrapdai_fg_clone, libdai), _FactorGraph, (_FactorGraph,), fg.hdl))
@@ -353,10 +344,10 @@ function setBackedFactor!(fg::FactorGraph, ind, fac::Factor)
   ccall( (:wrapdai_fg_setFactor_backup, libdai), None, 
     (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
 end
-function getVar(fg::FactorGraph, ind)
-  0 < ind <= numVars(fg) || throw(BoundsError())
-  Var(ccall( (:wrapdai_fg_var, libdai), _Var, (_FactorGraph, Csize_t), fg.hdl, ind-1))
-end
+#function getVar(fg::FactorGraph, ind)
+  #0 < ind <= numVars(fg) || throw(BoundsError())
+  #Var(ccall( (:wrapdai_fg_var, libdai), _Var, (_FactorGraph, Csize_t), fg.hdl, ind-1))
+#end
 function clearBackups!(fg::FactorGraph)
   ccall( (:wrapdai_fg_clearBackups, libdai), None, (_FactorGraph,), fg.hdl)
 end

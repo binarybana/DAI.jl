@@ -30,7 +30,7 @@ bool wrapdai_varset_contains(VarSet *vs, Var *v);
 bool wrapdai_varset_isequal(VarSet *v2, VarSet *vs2);
 bool wrapdai_varset_isless(VarSet *v2, VarSet *vs2);
 
-Var** wrapdai_varset_vars(VarSet *vs);
+Var* wrapdai_varset_vars(VarSet *vs);
 
 size_t wrapdai_varset_calcLinearState(VarSet *vs, size_t *states, VarSet* orig);
 void wrapdai_varset_calcState(VarSet *vs, size_t state, /*Var **vars,*/ size_t *states);
@@ -71,7 +71,7 @@ FactorGraph* wrapdai_fg_create();
 FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs);
 void wrapdai_fg_delete(FactorGraph *fg);
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) ;
-Var** wrapdai_fg_vars(FactorGraph *fg);
+Var* wrapdai_fg_vars(FactorGraph *fg);
 FactorGraph* wrapdai_fg_clone(FactorGraph *fg) ;
 size_t wrapdai_fg_nrVars(FactorGraph *fg) ;
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) ;

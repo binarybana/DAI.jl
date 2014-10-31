@@ -162,6 +162,9 @@ insert!(vs, y)
 
 @test facc == fac
 
+@test labels(fac) == [0,1,3]
+@test labels(vs1) == [0,1]
+
 #y = vars(fg)
 #x = vars(vs1)
 

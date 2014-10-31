@@ -101,12 +101,12 @@ bool wrapdai_varset_contains(VarSet *vs, Var *v) { return vs->contains(*v); }
 bool wrapdai_varset_isequal(VarSet *vs1, VarSet *vs2) { return *vs1 == *vs2; }
 bool wrapdai_varset_isless(VarSet *vs1, VarSet *vs2) { return *vs1 << *vs2; }
 // Safe way:
-Var** wrapdai_varset_vars(VarSet *vs) { 
+Var* wrapdai_varset_vars(VarSet *vs) { 
   const std::vector<Var> &vars = vs->elements(); 
   int numvars = vars.size();
-  Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
+  Var *varsvec = (Var *) malloc(sizeof(Var)*numvars);
   for (int i=0; i<numvars; i++) {
-    varsvec[i] = new Var (vars[i]);
+    varsvec[i] = vars[i];
   }
   return varsvec;
 }
@@ -231,12 +231,12 @@ FactorGraph* wrapdai_fg_create_facs(Factor **facs, int numfacs) {
 void wrapdai_fg_delete(FactorGraph *fg) { delete fg; }
 Var* wrapdai_fg_var(FactorGraph *fg, size_t ind) { return new Var (fg->var(ind)); }
 // Safe way:
-Var** wrapdai_fg_vars(FactorGraph *fg) { 
+Var* wrapdai_fg_vars(FactorGraph *fg) { 
   const std::vector<Var> &vars = fg->vars(); 
   int numvars = vars.size();
-  Var **varsvec = (Var **) malloc(sizeof(Var*)*numvars);
+  Var *varsvec = (Var *) malloc(sizeof(Var)*numvars);
   for (int i=0; i<numvars; i++) {
-    varsvec[i] = new Var (vars[i]);
+    varsvec[i] = vars[i];
   }
   return varsvec;
 }
