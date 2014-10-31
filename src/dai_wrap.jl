@@ -2,9 +2,6 @@
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 # and then hand modified by Jason Knight <jason@jasonknight.us>
 
-#typealias ptrdiff_t Clong
-#typealias size_t Culong
-#typealias wchar_t Cint
 import Base: length, getindex, setindex!, copy, ==, in, show, isless
 
 export Var, label, states
@@ -124,35 +121,51 @@ function -(vs::VarSet, v::Var)
 end
 
 function calcLinearState(vs::VarSet, statevals)
-  all(0 .< statevals .<= [states(v) for v=vars(vs)]) || throw(BoundsError())
+  for (i,v) in enumerate(vars(vs))
+    0 < statevals[i] <= states(v) || throw(BoundsError())
+  end
   assert(length(vs) == length(statevals))
-  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
-    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals).-1, C_NULL)
+  broadcast!(-,statevals,statevals,1)
+  ret = 1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
+    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint(statevals), C_NULL)
+  broadcast!(+,statevals,statevals,1)
+  ret
 end
 
 function calcLinearState(vs::VarSet, statevals, orig::VarSet)
-  all(0 .< statevals .<= [states(v) for v=vars(orig)]) || throw(BoundsError())
+  for (i,v) in enumerate(vars(orig))
+    if statevals[i] > states(v)
+      @show vs, statevals, orig
+      @show i,v
+      @show statevals[i], states(v)
+      throw(BoundsError())
+    end
+  end
   assert(length(orig) == length(statevals))
-  1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
-    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint64(statevals).-1, orig.hdl)
+  broadcast!(-,statevals,statevals,1)
+  ret = 1+ccall( (:wrapdai_varset_calcLinearState, libdai), Csize_t, 
+    (_VarSet, Ptr{Csize_t}, _VarSet), vs.hdl, uint(statevals), orig.hdl)
+  broadcast!(+,statevals,statevals,1)
+  ret
 end
 
-function calcState(vs::VarSet, state::Integer)
+function calcState(vs::VarSet, state)
   0 < state <= nrStates(vs) || throw(BoundsError())
   states = Array(Csize_t, length(vs))
   ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
     vs.hdl, state-1, states)
-  return states .+ 1
+  broadcast!(+,states,states,1)
+  return states 
 end
 
-function conditionalState(v::Var, pars::VarSet, vstate::Int, parstate::Int)
+function conditionalState(v::Var, pars::VarSet, vstate, parstate)
   0 < vstate <= states(v) || throw(BoundsError())
   0 < parstate <= nrStates(pars) || throw(BoundsError())
   1 + ccall( (:wrapdai_varset_conditionalState, libdai), Csize_t, 
     (_Var, _VarSet, Csize_t, Csize_t), &v, pars.hdl, vstate-1, parstate-1)
 end
 
-function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1::Int, vstate2::Int, parstate::Int)
+function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1, vstate2, parstate)
   0 < vstate1 <= states(v1) || throw(BoundsError())
   0 < vstate2 <= states(v2) || throw(BoundsError())
   0 < parstate <= nrStates(pars) || throw(BoundsError())
