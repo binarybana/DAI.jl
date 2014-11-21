@@ -7,6 +7,9 @@ y = Var(1,2)
 println("label: ", label(x))
 println("states: ", states(x))
 
+vs0 = VarSet(x) - x
+@test labels(vs0) == Int[]
+
 vs1 = VarSet(x,y)
 vs2 = VarSet(Var(3,3))
 
@@ -34,6 +37,33 @@ for i=1:nrStates(vs3)
   state = calcLinearState(vs3, states)
   println("-> state: $state")
   @test i==state
+end
+
+vs = VarSet(Var(0,2), Var(2,2))
+v = Var(1,2)
+for i=1:nrStates(vs), j=1:2
+  println("#################")
+  state = conditionalState(v,vs,j,i)
+  state_pris = DAI.pris_conditionalState(v,vs,j,i)
+  @test state==state_pris
+end
+
+vs = VarSet(Var(0,2), Var(2,2))
+v = Var(3,2)
+for i=1:nrStates(vs), j=1:2
+  println("#################")
+  state = conditionalState(v,vs,j,i)
+  state_pris = DAI.pris_conditionalState(v,vs,j,i)
+  @test state==state_pris
+end
+
+vs = VarSet(Var(1,2), Var(2,2))
+v = Var(0,2)
+for i=1:nrStates(vs), j=1:2
+  println("#################")
+  state = conditionalState(v,vs,j,i)
+  state_pris = DAI.pris_conditionalState(v,vs,j,i)
+  @test state==state_pris
 end
 
 #testvals = zeros(int(nrStates(vs3)))
@@ -164,6 +194,15 @@ insert!(vs, y)
 
 @test labels(fac) == [0,1,3]
 @test labels(vs1) == [0,1]
+
+############
+vs = VarSet(Var(1,2), Var(2,2))
+
+fac = Factor(vs)
+fac2 = embed(fac, Var(3,2))
+fac3 = embed(fac, vs+Var(3,2))
+@test fac2 == fac3
+#
 
 #y = vars(fg)
 #x = vars(vs1)

@@ -2,7 +2,7 @@
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 # and then hand modified by Jason Knight <jason@jasonknight.us>
 
-import Base: length, getindex, setindex!, copy, ==, in, show, isless
+import Base: length, getindex, setindex!, copy, ==, in, show, isless, searchsortedlast
 
 export Var, label, states
 export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalState2
@@ -91,6 +91,9 @@ function labels(vs::VarSet)
     int(length(vs)))
   Int[label(x) for x in ptrs]
 end
+function searchsortedlast(vs::VarSet, v::Var)
+  ccall( (:wrapdai_varset_searchsortedlast, libdai), Cint, (_VarSet,_Var), vs.hdl, &v)
+end
 function nrStates(vs::VarSet)
   ccall( (:wrapdai_varset_nrStates, libdai), Cint, (_VarSet,), vs.hdl)
 end
@@ -121,19 +124,14 @@ function -(vs::VarSet, v::Var)
 end
 
 function calcLinearState(vs::VarSet, statevals)
-  for (i,v) in enumerate(vars(vs))
-    0 < statevals[i] <= states(v) || throw(BoundsError())
-  end
-  assert(length(vs) == length(statevals))
+  #for (i,v) in enumerate(vars(vs))
+    #0 < statevals[i] <= states(v) || throw(BoundsError())
+  #end
+  #assert(length(vs) == length(statevals))
   tot = 0
   for i=1:length(statevals)
     tot += (statevals[i]-1)*2^(i-1)
   end
-  #if (tot+1) != pris_calcLinearState(vs,statevals)
-    #@show (tot+1)
-    #@show pris_calcLinearState(vs,statevals)
-    #throw(Exception())
-  #end
   tot+1
 end
 
@@ -184,19 +182,93 @@ function calcState(vs::VarSet, state)
 end
 
 function conditionalState(v::Var, pars::VarSet, vstate, parstate)
+  #0 < vstate <= states(v) || throw(BoundsError())
+  #0 < parstate <= nrStates(pars) || throw(BoundsError())
+  tot = 0
+  inserti = searchsortedlast(pars,v)
+  correction = 0
+  ps = parstate - 1
+  for i=1:length(pars)
+    if inserti < i && correction == 0
+      tot += (vstate-1)*2^(i-1)
+      correction = 1
+    end
+    stateval = 2^(i+correction-1) & (ps<<correction)
+    tot += stateval#*2^(i+correction-1)
+  end
+  if correction == 0 # append variable
+    tot += (vstate-1)*2^(length(pars))
+  end
+  #pris = pris_conditionalState(v,pars,vstate,parstate)
+  #if pris != (tot+1)
+    #@show v
+    #@show pars
+    #@show vstate
+    #@show parstate
+    #@show tot+1
+    #@show pris
+  #end
+  tot+1
+end
+
+function pris_conditionalState(v::Var, pars::VarSet, vstate, parstate)
   0 < vstate <= states(v) || throw(BoundsError())
   0 < parstate <= nrStates(pars) || throw(BoundsError())
   1 + ccall( (:wrapdai_varset_conditionalState, libdai), Csize_t, 
     (_Var, _VarSet, Csize_t, Csize_t), &v, pars.hdl, vstate-1, parstate-1)
 end
 
-function conditionalState2(v1::Var, v2::Var, pars::VarSet, vstate1, vstate2, parstate)
-  0 < vstate1 <= states(v1) || throw(BoundsError())
-  0 < vstate2 <= states(v2) || throw(BoundsError())
+function conditionalState2(all::VarSet, v1::Var, v2::Var, pars::VarSet, vstate, parstate)
+  #0 < vstate <= states(v1) || throw(BoundsError())
+  #0 < parstate <= nrStates(pars) || throw(BoundsError())
+  tot1 = 0
+  tot2 = 0
+  inserti1 = searchsortedlast(all,v1) #this is 'off by one' and accounted for below
+  inserti2 = searchsortedlast(all,v2)
+  ps = parstate - 1
+  correction = 0
+  for i=1:length(all)
+    if inserti1 == i
+      temp = (vstate-1)*2^(i-1)
+      tot1 += temp
+      tot2 += temp
+      correction += 1
+    elseif inserti2 == i
+      # tot1 missing on purpose here
+      tot2 += 2^(i-1)
+      correction += 1
+    else
+      stateval = 2^(i-1) & (ps<<correction)
+      tot1 += stateval
+      tot2 += stateval
+    end
+  end
+  tot1 += 1
+  tot2 += 1
+  #pris = pris_conditionalState2(all,v1,v2,pars,vstate,parstate)
+  #if pris != (tot1,tot2)
+    #raise(Exception())
+    #@show v1
+    #@show v2
+    #@show pars
+    #@show vstate
+    #@show parstate
+    #@show tot1+1,tot2+1
+    #@show pris
+  #end
+  tot1,tot2
+end
+
+function pris_conditionalState2(all::VarSet, v1::Var, v2::Var, pars::VarSet, vstate, parstate)
+  0 < vstate <= states(v1) || throw(BoundsError())
   0 < parstate <= nrStates(pars) || throw(BoundsError())
-  1 + ccall( (:wrapdai_varset_conditionalState2, libdai), Csize_t, 
+  i1 = 1 + ccall( (:wrapdai_varset_conditionalState2, libdai), Csize_t, 
     (_Var, _Var, _VarSet, Csize_t, Csize_t, Csize_t), 
-    &v1, &v2, pars.hdl, vstate1-1, vstate2-1, parstate-1)
+    &v1, &v2, pars.hdl, vstate-1, 0, parstate-1)
+  i2 = 1 + ccall( (:wrapdai_varset_conditionalState2, libdai), Csize_t, 
+    (_Var, _Var, _VarSet, Csize_t, Csize_t, Csize_t), 
+    &v1, &v2, pars.hdl, vstate-1, 1, parstate-1)
+  return i1,i2
 end
 
 function in(v::Var, vs::VarSet)
@@ -293,10 +365,48 @@ function marginal(fac::Factor, vs::VarSet)
   Factor(ccall( (:wrapdai_factor_marginal, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
 function embed(fac::Factor, vs::VarSet)
-  vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
-  assert(ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vsp, vs.hdl))
+  #vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
+  #assert(ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vsp, vs.hdl))
   Factor(ccall( (:wrapdai_factor_embed, libdai), _Factor, (_Factor, _VarSet), fac.hdl, vs.hdl))
 end
+#function embed(fac::Factor, v::Var)
+  ##vsp = ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl)
+  ##assert(ccall( (:wrapdai_varset_isless, libdai), Bool, (_VarSet, _VarSet), vsp, vs.hdl))
+  #Factor(ccall( (:wrapdai_factor_embed_one, libdai), _Factor, (_Factor, _Var), fac.hdl, &v))
+#end
+
+function embed(fac::Factor, v::Var)
+  #create blank factor with right nodes
+  oldvars = vars(fac)
+  inserti = searchsortedlast(oldvars,v)
+  newfac = Factor(oldvars+v)
+  numoldvars = length(oldvars)
+  for origstate=1:nrStates(fac)
+    temp = fac[origstate]
+    tot0 = 0
+    tot1 = 0
+    correction = 0
+    ps = origstate - 1
+    for i=1:numoldvars
+      if inserti < i && correction == 0
+        #tot0 += 0*2^(i-1)
+        tot1 += 2^(i-1)
+        correction = 1
+      end
+      stateval = 2^(i+correction-1) & (ps<<correction)
+      tot0 += stateval
+      tot1 += stateval
+    end
+    if correction == 0 # append variable
+      #tot0 += (vstate-1)*2^(length(oldvars))
+      tot1 += 2^numoldvars
+    end
+    newfac[tot0+1] = temp
+    newfac[tot1+1] = temp
+  end
+  newfac
+end
+
 function normalize!(fac::Factor)
   ccall( (:wrapdai_factor_normalize, libdai), Cdouble, (_Factor,), fac.hdl)
 end
@@ -456,7 +566,7 @@ function marginal(jt::JTree, vs::VarSet)
   Factor(ccall( (:wrapdai_jt_calcMarginal, libdai), _Factor, (_JTree, _VarSet), jt.hdl, vs.hdl))
 end
 function belief(jt::JTree, vs::VarSet)
-  ccall( (:wrapdai_jt_belief, libdai), _Factor, (_JTree, _VarSet), jt.hdl, vs.hdl)
+  Factor(ccall( (:wrapdai_jt_belief, libdai), _Factor, (_JTree, _VarSet), jt.hdl, vs.hdl))
 end
 ############################
 # PropertySet

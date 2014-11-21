@@ -87,6 +87,17 @@ unsigned int wrapdai_varset_nrStates(VarSet *vs) {
 
 }
 
+int wrapdai_varset_searchsortedlast(VarSet *vs, Var *v) {
+  int i=0; 
+  for (std::vector<Var>::iterator it=vs->begin(); it!=vs->end(); ++it) {
+    if (v->label() < it->label()) {
+      break;
+    }
+    i++;
+  }
+  return i;
+}
+
 int wrapdai_varset_size(VarSet *vs) { return vs->size(); }
 VarSet* wrapdai_varset_erase(VarSet *vs, Var *v) { return static_cast<VarSet*>(&(vs->erase(*v))); }
 VarSet* wrapdai_varset_remove(VarSet *vs1, VarSet *vs2) { return static_cast<VarSet*>(&((*vs1)/=(*vs2))); }
@@ -197,6 +208,9 @@ Factor* wrapdai_factor_marginal(Factor *fac, VarSet *vs) {
 }
 Factor* wrapdai_factor_embed(Factor *fac, VarSet *vs) { 
   return new Factor (fac->embed(*vs));
+}
+Factor* wrapdai_factor_embed_one(Factor *fac, Var *v) { 
+  return new Factor (fac->embed(fac->vars()|(*v)));
 }
 double wrapdai_factor_normalize(Factor *fac) { return fac->normalize(); }
 bool wrapdai_factor_isequal(Factor *fac1, Factor *fac2) { return *fac1 == *fac2; }
