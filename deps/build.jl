@@ -1,6 +1,6 @@
 daipath = expanduser("../../misc/samcnet/deps/libdai")
 if !isfile("libdaiwrap.so") || stat("libdaiwrap.so").mtime < stat("dai.cpp").mtime 
-	run(`g++ dai.cpp -I$daipath/include -L$daipath/lib -ldai -lgmpxx -lm -shared -fPIC -Wl,-rpath,$(pwd()) -o libdaiwrap.so`)
+	run(`g++ dai.cpp -I$daipath/include -L$daipath/lib -ldai -lgmpxx -lm -shared -fPIC -Wl,-rpath,\$ORIGIN -o libdaiwrap.so`)
 end
 !isfile("libdai.so") && run(`ln -s $daipath/lib/libdai.so .`)
 #push!(DL_LOAD_PATH, pwd())
