@@ -184,8 +184,6 @@ void wrapdai_ps_delete(PropertySet *ps) { delete ps; }
         //T operator[](size_t)
         //T normalize()
 
-typedef TFactor<double> Factor;
-
 Factor* wrapdai_factor_create_empty() { return new Factor(); }
 Factor* wrapdai_factor_create_var(Var *v) { return new Factor(*v); }
 Factor* wrapdai_factor_create_varset(VarSet *vs) { return new Factor(*vs); }
