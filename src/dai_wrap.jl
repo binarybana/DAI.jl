@@ -2,7 +2,7 @@
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 # and then hand modified by Jason Knight <jason@jasonknight.us>
 
-import Base: length, getindex, setindex!, copy, ==, in, show, isless, searchsortedlast
+import Base: length, getindex, setindex!, copy, ==, in, show, isless, searchsortedlast, deepcopy_internal
 
 export Var, label, states
 export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalState2
@@ -80,6 +80,10 @@ function wrapdai_varset_delete(x::VarSet)
 end
 function copy(vs::VarSet)
   VarSet(ccall( (:wrapdai_varset_clone, libdai), _VarSet, (_VarSet,), vs.hdl))
+end
+function deepcopy_internal(vs::VarSet, stack::ObjectIdDict)
+  haskey(stack,vs) && return vs
+  return stack[vs] = copy(vs)
 end
 
 function insert!(vs::VarSet, v::Var)
@@ -350,6 +354,10 @@ end
 function copy(fac::Factor)
   Factor(ccall( (:wrapdai_factor_clone, libdai), _Factor, (_Factor,), fac.hdl))
 end
+function deepcopy_internal(fac::Factor, stack::ObjectIdDict)
+  haskey(stack,fac) && return fac
+  return stack[fac] = copy(fac)
+end
 function vars(fac::Factor)
   VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl),false)
 end
@@ -459,6 +467,10 @@ function vars(fg::FactorGraph)
 end
 function copy(fg::FactorGraph)
   FactorGraph(ccall( (:wrapdai_fg_clone, libdai), _FactorGraph, (_FactorGraph,), fg.hdl))
+end
+function deepcopy_internal(fg::FactorGraph, stack::ObjectIdDict)
+  haskey(stack,fg) && return fg
+  return stack[fg] = copy(fg)
 end
 function numVars(fg::FactorGraph)
   int(ccall( (:wrapdai_fg_nrVars, libdai), Csize_t, (_FactorGraph,), fg.hdl))

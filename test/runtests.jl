@@ -42,7 +42,6 @@ end
 vs = VarSet(Var(0,2), Var(2,2))
 v = Var(1,2)
 for i=1:nrStates(vs), j=1:2
-  println("#################")
   state = conditionalState(v,vs,j,i)
   state_pris = DAI.pris_conditionalState(v,vs,j,i)
   @test state==state_pris
@@ -51,7 +50,6 @@ end
 vs = VarSet(Var(0,2), Var(2,2))
 v = Var(3,2)
 for i=1:nrStates(vs), j=1:2
-  println("#################")
   state = conditionalState(v,vs,j,i)
   state_pris = DAI.pris_conditionalState(v,vs,j,i)
   @test state==state_pris
@@ -60,11 +58,22 @@ end
 vs = VarSet(Var(1,2), Var(2,2))
 v = Var(0,2)
 for i=1:nrStates(vs), j=1:2
-  println("#################")
   state = conditionalState(v,vs,j,i)
   state_pris = DAI.pris_conditionalState(v,vs,j,i)
   @test state==state_pris
 end
+
+# Memory allocation tests
+vs = VarSet(Var(1,2), Var(2,2))
+for i=1:100000
+  vs = deepcopy(vs)
+end
+gc()
+allvars = vars(vs)
+@test allvars[1].label == 1
+@test allvars[2].label == 2
+@test allvars[1].states == 2
+@test allvars[2].states == 2
 
 #testvals = zeros(int(nrStates(vs3)))
 #testvals[1] = 3.0
@@ -72,6 +81,16 @@ end
 #testvals[12] = 3.0
 
 testvals = rand(int(nrStates(vs3)))
+
+# Memory allocation tests
+vs = VarSet(Var(1,2), Var(2,2))
+fac = Factor(vs3, testvals)
+for i=1:10000
+  fac = deepcopy(fac)
+end
+gc()
+@test vars(fac) == vs3
+@test p(fac) == testvals
 
 fac = Factor(vs3, testvals)
 
@@ -107,6 +126,16 @@ fg = FactorGraph(fac, fac2, fac3)
 println("Number of edges: $(numEdges(fg))")
 println("Number of factors: $(numFactors(fg))")
 println("Number of vars: $(numVars(fg))")
+
+# Memory allocation tests
+fg = FactorGraph(fac, fac2, fac3)
+for i=1:10000
+  fg = deepcopy(fg)
+end
+gc()
+@test fg[1] == fac
+@test fg[2] == fac2
+@test fg[3] == fac3
 
 println("")
 println("Testing JTree")
