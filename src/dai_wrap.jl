@@ -557,8 +557,14 @@ end
 function wrapdai_jtree_delete(jt::JTree)
   ccall( (:wrapdai_jt_delete, libdai), None, (_JTree,), jt.hdl)
 end
+
 function copy(jt::JTree)
-  ccall( (:wrapdai_jt_clone, libdai), _JTree, (_JTree,), jt.hdl)
+  JTree(ccall( (:wrapdai_jt_clone, libdai), _JTree, (_JTree,), jt.hdl))
+end
+
+function deepcopy_internal(jt::JTree, stack::ObjectIdDict)
+  haskey(stack,jt) && return jt
+  return stack[jt] = copy(jt)
 end
 
 function init!(jt::JTree)

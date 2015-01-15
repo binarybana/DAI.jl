@@ -137,6 +137,10 @@ gc()
 @test fg[2] == fac2
 @test fg[3] == fac3
 
+jt = JTree(fg)
+jt2 = deepcopy(jt)
+@test jt2.hdl != jt.hdl
+
 println("")
 println("Testing JTree")
 jt = JTree(fg)
