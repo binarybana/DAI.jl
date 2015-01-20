@@ -5,7 +5,7 @@
 import Base: length, getindex, setindex!, copy, ==, in, show, isless, searchsortedlast, deepcopy_internal
 
 export Var, label, states
-export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalState2
+export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalStateBoth, conditionalState2
 export Factor, vars, entropy, embed, normalize!, p
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
@@ -203,16 +203,28 @@ function conditionalState(v::Var, pars::VarSet, vstate, parstate)
   if correction == 0 # append variable
     tot += (vstate-1)*2^(length(pars))
   end
-  #pris = pris_conditionalState(v,pars,vstate,parstate)
-  #if pris != (tot+1)
-    #@show v
-    #@show pars
-    #@show vstate
-    #@show parstate
-    #@show tot+1
-    #@show pris
-  #end
   tot+1
+end
+
+function conditionalStateBoth(v::Var, pars::VarSet, parstate)
+  tot0 = 0
+  tot1 = 0
+  inserti = searchsortedlast(pars,v)
+  correction = 0
+  ps = parstate - 1
+  for i=1:length(pars)
+    if inserti < i && correction == 0
+      tot1 += 2^(i-1)
+      correction = 1
+    end
+    stateval = 2^(i+correction-1) & (ps<<correction)
+    tot0 += stateval
+    tot1 += stateval
+  end
+  if correction == 0 # append variable
+    tot1 += 2^(length(pars))
+  end
+  tot0+1,tot1+1
 end
 
 function pris_conditionalState(v::Var, pars::VarSet, vstate, parstate)

@@ -41,10 +41,18 @@ end
 
 vs = VarSet(Var(0,2), Var(2,2))
 v = Var(1,2)
-for i=1:nrStates(vs), j=1:2
-  state = conditionalState(v,vs,j,i)
-  state_pris = DAI.pris_conditionalState(v,vs,j,i)
-  @test state==state_pris
+for i=1:nrStates(vs)
+  i1,i2 = conditionalStateBoth(v,vs,i)
+  for j=1:2
+    state = conditionalState(v,vs,j,i)
+    state_pris = DAI.pris_conditionalState(v,vs,j,i)
+    @test state==state_pris
+    if j==1
+      @test i1 == state
+    else
+      @test i2 == state
+    end
+  end
 end
 
 vs = VarSet(Var(0,2), Var(2,2))
