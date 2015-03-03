@@ -400,7 +400,7 @@ end
 
 function embed(fac::Factor, v::Var)
   #create blank factor with right nodes
-  oldvars = vars_safe(fac)
+  oldvars = vars(fac)
   inserti = searchsortedlast(oldvars,v)
   newfac = Factor(oldvars+v)
   numoldvars = length(oldvars)
