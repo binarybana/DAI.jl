@@ -6,7 +6,7 @@ import Base: length, getindex, setindex!, copy, ==, in, show, isless, searchsort
 
 export Var, label, states
 export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalStateBoth, conditionalState2
-export Factor, vars, entropy, embed, normalize!, p
+export Factor, vars, entropy, embed, normalize!, p, vars_safe
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
 export JTree, init!, run!, iterations, properties, marginal, belief
 
@@ -76,7 +76,7 @@ function +(v1::Var, v2::Var)
 end
 
 function wrapdai_varset_delete(x::VarSet)
-  ccall( (:wrapdai_varset_delete, libdai), None, (_VarSet,), x.hdl)
+  ccall( (:wrapdai_varset_delete, libdai), Void, (_VarSet,), x.hdl)
 end
 function copy(vs::VarSet)
   VarSet(ccall( (:wrapdai_varset_clone, libdai), _VarSet, (_VarSet,), vs.hdl))
@@ -179,7 +179,7 @@ end
 function calcState(vs::VarSet, state)
   0 < state <= nrStates(vs) || throw(BoundsError())
   states = Array(Csize_t, length(vs))
-  ccall( (:wrapdai_varset_calcState, libdai), None, (_VarSet, Csize_t, Ptr{Csize_t}), 
+  ccall( (:wrapdai_varset_calcState, libdai), Void, (_VarSet, Csize_t, Ptr{Csize_t}), 
     vs.hdl, state-1, states)
   broadcast!(+,states,states,1)
   return states 
@@ -340,7 +340,7 @@ function Factor(vs::VarSet, vals::Vector{Float64})
 end
 
 function wrapdai_factor_delete(fac::Factor)
-  ccall( (:wrapdai_factor_delete, libdai), None, (_Factor,), fac.hdl)
+  ccall( (:wrapdai_factor_delete, libdai), Void, (_Factor,), fac.hdl)
 end
 function length(fac::Factor)
   ccall( (:wrapdai_factor_numvars, libdai), Cint, (_Factor,), fac.hdl)
@@ -354,7 +354,7 @@ function labels(fac::Factor)
 end
 function setindex!(fac::Factor, val, index)
   0 < index <= nrStates(fac) || throw(BoundsError())
-  ccall( (:wrapdai_factor_set, libdai), None, (_Factor, Csize_t, Cdouble), fac.hdl, index-1, val)
+  ccall( (:wrapdai_factor_set, libdai), Void, (_Factor, Csize_t, Cdouble), fac.hdl, index-1, val)
 end
 function getindex(fac::Factor, index)
   0 < index <= nrStates(fac) || throw(BoundsError())
@@ -371,7 +371,10 @@ function deepcopy_internal(fac::Factor, stack::ObjectIdDict)
   return stack[fac] = copy(fac)
 end
 function vars(fac::Factor)
-  VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl),false)
+  VarSet(ccall( (:wrapdai_factor_vars_unsafe, libdai), _VarSet, (_Factor,), fac.hdl), false)
+end
+function vars_safe(fac::Factor)
+  VarSet(ccall( (:wrapdai_factor_vars, libdai), _VarSet, (_Factor,), fac.hdl), true)
 end
 function nrStates(fac::Factor)
   int(ccall( (:wrapdai_factor_nrStates, libdai), Csize_t, (_Factor,), fac.hdl))
@@ -397,7 +400,7 @@ end
 
 function embed(fac::Factor, v::Var)
   #create blank factor with right nodes
-  oldvars = vars(fac)
+  oldvars = vars_safe(fac)
   inserti = searchsortedlast(oldvars,v)
   newfac = Factor(oldvars+v)
   numoldvars = length(oldvars)
@@ -471,7 +474,7 @@ function FactorGraph(factors...)
 end
 
 function wrapdai_fg_delete(fg::FactorGraph)
-  ccall( (:wrapdai_fg_delete, libdai), None, (_FactorGraph,), fg.hdl)
+  ccall( (:wrapdai_fg_delete, libdai), Void, (_FactorGraph,), fg.hdl)
 end
 
 function vars(fg::FactorGraph)
@@ -499,7 +502,7 @@ function getindex(fg::FactorGraph, ind)
 end
 function setindex!(fg::FactorGraph, fac::Factor, ind)
   0 < ind <= numFactors(fg) || throw(BoundsError())
-  ccall( (:wrapdai_fg_setFactor_backup, libdai), None, 
+  ccall( (:wrapdai_fg_setFactor_backup, libdai), Void, 
     (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
 end
 function ==(fg1::FactorGraph, fg2::FactorGraph)
@@ -513,7 +516,7 @@ function ==(fg1::FactorGraph, fg2::FactorGraph)
 end
 function setBackedFactor!(fg::FactorGraph, ind, fac::Factor)
   0 < ind <= numFactors(fg) || throw(BoundsError())
-  ccall( (:wrapdai_fg_setFactor_backup, libdai), None, 
+  ccall( (:wrapdai_fg_setFactor_backup, libdai), Void, 
     (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
 end
 #function getVar(fg::FactorGraph, ind)
@@ -521,14 +524,14 @@ end
   #Var(ccall( (:wrapdai_fg_var, libdai), _Var, (_FactorGraph, Csize_t), fg.hdl, ind-1))
 #end
 function clearBackups!(fg::FactorGraph)
-  ccall( (:wrapdai_fg_clearBackups, libdai), None, (_FactorGraph,), fg.hdl)
+  ccall( (:wrapdai_fg_clearBackups, libdai), Void, (_FactorGraph,), fg.hdl)
 end
 function restoreFactors!(fg::FactorGraph)
-  ccall( (:wrapdai_fg_restoreFactors, libdai), None, (_FactorGraph,), fg.hdl)
+  ccall( (:wrapdai_fg_restoreFactors, libdai), Void, (_FactorGraph,), fg.hdl)
 end
 function readFromFile(fg::FactorGraph, text)
   FactorGraph(ccall( (:wrapdai_fg_readFromFile, libdai), 
-    None, (_FactorGraph, Ptr{Uint8}), fg.hdl, text))
+    Void, (_FactorGraph, Ptr{Uint8}), fg.hdl, text))
 end
 function show(io::IO, fg::FactorGraph)
   if numVars(fg) == 0
@@ -567,7 +570,7 @@ function JTree(fg::FactorGraph, props="[updates=HUGIN]")
   jt
 end
 function wrapdai_jtree_delete(jt::JTree)
-  ccall( (:wrapdai_jt_delete, libdai), None, (_JTree,), jt.hdl)
+  ccall( (:wrapdai_jt_delete, libdai), Void, (_JTree,), jt.hdl)
 end
 
 function copy(jt::JTree)
@@ -580,10 +583,10 @@ function deepcopy_internal(jt::JTree, stack::ObjectIdDict)
 end
 
 function init!(jt::JTree)
-  ccall( (:wrapdai_jt_init, libdai), None, (_JTree,), jt.hdl)
+  ccall( (:wrapdai_jt_init, libdai), Void, (_JTree,), jt.hdl)
 end
 function run!(jt::JTree)
-  ccall( (:wrapdai_jt_run, libdai), None, (_JTree,), jt.hdl)
+  ccall( (:wrapdai_jt_run, libdai), Void, (_JTree,), jt.hdl)
 end
 function iterations(jt::JTree)
   ccall( (:wrapdai_jt_iterations, libdai), Csize_t, (_JTree,), jt.hdl)
