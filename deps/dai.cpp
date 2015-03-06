@@ -3,8 +3,10 @@
 #include <exception>
 #include <iostream>
 #include <vector>
+#include <string>
 #include <map>
 
+#include <dai/alldai.h>
 #include <dai/var.h>
 #include <dai/varset.h>
 #include <dai/properties.h>
@@ -275,26 +277,17 @@ void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) { fg->ReadFromFile(tex
 //double wrapdai_fg_logScore(FactorGraph *fg, statevec) { return fg->nrEdges(); }
 
 
-//cdef extern from "dai/jtree.h" namespace "dai":
-    //cdef cppclass JTree:
-        //JTree()
-        //JTree(FactorGraph &, PropertySet &)
-        //void init()
-        //void run()
-        //size_t Iterations()
-        //string printProperties()
-        //Factor calcMarginal(VarSet &)
-        //Factor belief(VarSet &)
+//InfAlg:
 
-JTree* wrapdai_jt_create() { return new JTree(); }
-void wrapdai_jt_delete(JTree *jt) { delete jt; }
-JTree* wrapdai_jt_create_fgps(FactorGraph *fg, PropertySet *ps) { return new JTree(*fg, *ps); }
-JTree* wrapdai_jt_clone(JTree *jt) { return jt->clone(); }
-void wrapdai_jt_init(JTree *jt) { jt->init(); }
-void wrapdai_jt_run(JTree *jt) { jt->run(); }
-size_t wrapdai_jt_iterations(JTree *jt) { return jt->Iterations(); }
-const char* wrapdai_jt_printProperties(JTree *jt) { return jt->printProperties().c_str(); }
-Factor* wrapdai_jt_calcMarginal(JTree *jt, VarSet *vs) { return new Factor (jt->calcMarginal(*vs)); }
-Factor* wrapdai_jt_belief(JTree *jt, VarSet *vs) { return new Factor (jt->belief(*vs)); }
+InfAlg* wrapdai_newInfAlg(const char* name, const FactorGraph &fg, PropertySet *ps) { return newInfAlg(std::string(name), fg, *ps); }
+void wrapdai_ia_delete(InfAlg *ia) { delete ia; }
+InfAlg* wrapdai_ia_clone(InfAlg *ia) { return ia->clone(); }
+void wrapdai_ia_init(InfAlg *ia) { ia->init(); }
+void wrapdai_ia_run(InfAlg *ia) { ia->run(); }
+size_t wrapdai_ia_iterations(InfAlg *ia) { return ia->Iterations(); }
+const char* wrapdai_ia_printProperties(InfAlg *ia) { return ia->printProperties().c_str(); }
+Factor* wrapdai_ia_calcMarginal(const InfAlg *ia, const VarSet *vs, bool reInit) { return new Factor(calcMarginal(*ia, *vs, reInit)); }
+Factor* wrapdai_ia_belief(InfAlg *ia, VarSet *vs) { return new Factor (ia->belief(*vs)); }
+
 
 }

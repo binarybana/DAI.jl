@@ -8,13 +8,13 @@ export Var, label, states
 export VarSet, insert!, erase!, labels, nrStates, calcLinearState, calcState, conditionalState, conditionalStateBoth, conditionalState2
 export Factor, vars, entropy, embed, normalize!, p, vars_safe
 export FactorGraph, numVars, numFactors, numEdges, setBackedFactor!, clearBackups!, restoreFactors!, readFromFile
-export JTree, init!, run!, iterations, properties, marginal, belief
+export InfAlg, init!, run!, iterations, properties, marginal, belief
 
 typealias _VarSet Ptr{Void}
 typealias _PropertySet Ptr{Void}
 typealias _Factor Ptr{Void}
 typealias _FactorGraph Ptr{Void}
-typealias _JTree Ptr{Void}
+typealias _InfAlg Ptr{Void}
 
 ############################
 # Var
@@ -555,52 +555,63 @@ end
 # JunctionTree
 ############################
 
-type JTree
-  hdl::_JTree
-  function JTree(hdl::_JTree)
+type InfAlg
+  hdl::_InfAlg
+  function InfAlg(hdl::_InfAlg)
     v = new(hdl)
-    finalizer(v, wrapdai_jtree_delete)
+    finalizer(v, wrapdai_infalg_delete)
     v
   end
 end
-function JTree(fg::FactorGraph, props="[updates=HUGIN]")
+function InfAlg(fg::FactorGraph, name="JTREE", props="")
+  if length(props) == 0
+    if name == "JTREE"
+      props = "[updates=HUGIN]" 
+    elseif name == "BP"
+      props = "[inference=SUMPROD,updates=SEQRND,logdomain=1,tol=1e-9,maxiter=10000,damping=0.0]"
+    else
+      raise(ArgumentError("Unknown Inference Algorithm name"))
+    end
+  end
   ps = wrapdai_ps_create(props)
-  jt = JTree(ccall( (:wrapdai_jt_create_fgps, libdai), _JTree, (_FactorGraph, _PropertySet), fg.hdl, ps))
+  ia = InfAlg(ccall( (:wrapdai_newInfAlg, libdai), _InfAlg, (Ptr{Uint8}, _FactorGraph, _PropertySet), name, fg.hdl, ps))
   wrapdai_ps_delete(ps)
-  jt
-end
-function wrapdai_jtree_delete(jt::JTree)
-  ccall( (:wrapdai_jt_delete, libdai), Void, (_JTree,), jt.hdl)
+  ia
 end
 
-function copy(jt::JTree)
-  JTree(ccall( (:wrapdai_jt_clone, libdai), _JTree, (_JTree,), jt.hdl))
+function wrapdai_infalg_delete(ia::InfAlg)
+  ccall( (:wrapdai_ia_delete, libdai), Void, (_InfAlg,), ia.hdl)
 end
 
-function deepcopy_internal(jt::JTree, stack::ObjectIdDict)
-  haskey(stack,jt) && return jt
-  return stack[jt] = copy(jt)
+function copy(ia::InfAlg)
+  InfAlg(ccall( (:wrapdai_ia_clone, libdai), _InfAlg, (_InfAlg,), ia.hdl))
 end
 
-function init!(jt::JTree)
-  ccall( (:wrapdai_jt_init, libdai), Void, (_JTree,), jt.hdl)
+function deepcopy_internal(ia::InfAlg, stack::ObjectIdDict)
+  haskey(stack,ia) && return ia
+  return stack[ia] = copy(ia)
 end
-function run!(jt::JTree)
-  ccall( (:wrapdai_jt_run, libdai), Void, (_JTree,), jt.hdl)
+
+function init!(ia::InfAlg)
+  ccall( (:wrapdai_ia_init, libdai), Void, (_InfAlg,), ia.hdl)
 end
-function iterations(jt::JTree)
-  ccall( (:wrapdai_jt_iterations, libdai), Csize_t, (_JTree,), jt.hdl)
+function run!(ia::InfAlg)
+  ccall( (:wrapdai_ia_run, libdai), Void, (_InfAlg,), ia.hdl)
 end
-function properties(jt::JTree)
-  ptr = ccall( (:wrapdai_jt_printProperties, libdai), Ptr{Uint8}, (_JTree,), jt.hdl)
+function iterations(ia::InfAlg)
+  ccall( (:wrapdai_ia_iterations, libdai), Csize_t, (_InfAlg,), ia.hdl)
+end
+function properties(ia::InfAlg)
+  ptr = ccall( (:wrapdai_ia_printProperties, libdai), Ptr{Uint8}, (_InfAlg,), ia.hdl)
   bytestring(ptr)
 end
-function marginal(jt::JTree, vs::VarSet)
-  Factor(ccall( (:wrapdai_jt_calcMarginal, libdai), _Factor, (_JTree, _VarSet), jt.hdl, vs.hdl))
+function marginal(ia::InfAlg, vs::VarSet)
+  Factor(ccall( (:wrapdai_ia_calcMarginal, libdai), _Factor, (_InfAlg, _VarSet), ia.hdl, vs.hdl))
 end
-function belief(jt::JTree, vs::VarSet)
-  Factor(ccall( (:wrapdai_jt_belief, libdai), _Factor, (_JTree, _VarSet), jt.hdl, vs.hdl))
+function belief(ia::InfAlg, vs::VarSet)
+  Factor(ccall( (:wrapdai_ia_belief, libdai), _Factor, (_InfAlg, _VarSet), ia.hdl, vs.hdl))
 end
+
 ############################
 # PropertySet
 ############################

@@ -145,21 +145,28 @@ gc()
 @test fg[2] == fac2
 @test fg[3] == fac3
 
-jt = JTree(fg)
-jt2 = deepcopy(jt)
-@test jt2.hdl != jt.hdl
+ia = nothing
+for name = ["JTREE", "BP"]
+  println("Testing $name")
+  ia = InfAlg(fg)
+  ia2 = deepcopy(ia)
+  @test ia2.hdl != ia.hdl
 
-println("")
-println("Testing JTree")
-jt = JTree(fg)
-init!(jt)
-run!(jt)
-println("iterations: $(iterations(jt))")
-println(properties(jt))
-marg = marginal(jt, vs1)
-@show p(marg)
+  ia = InfAlg(fg)
+  init!(ia)
+  run!(ia)
+  println("iterations: $(iterations(ia))")
+  println(properties(ia))
+  marginal(ia, vs1)
+  @time marg = marginal(ia, vs1)
+  bel = belief(ia, vs1)
+  @show p(marg)
+  @show p(bel)
 
-@test_approx_eq sum(p(marg)) 1
+  @test_approx_eq sum(p(marg)) 1
+  @test_approx_eq sum(p(bel)) 1
+end
+
 
 @test fg[1] == fac
 @test fg[2] == fac2
@@ -173,11 +180,11 @@ x[1] += 2.0
 @test facc != fac
 println("Factor copying checks out")
 
-#Test fg and jtree copying
+#Test fg and infalg copying
 fgc = copy(fg)
 @test fgc == fg
-jtc = copy(jt)
-#@test jtc == jt # doesn't exist yet
+iac = copy(ia)
+#@test iac == ia # doesn't exist yet
 
 ## Test fg equality
 setBackedFactor!(fgc,1,facc)

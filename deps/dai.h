@@ -6,7 +6,7 @@ typedef struct PropertySet PropertySet;
 typedef struct Factor Factor;
 typedef struct FactorGraph FactorGraph;
 typedef struct bool bool;
-typedef struct JTree JTree;
+typedef struct InfAlg InfAlg;
 
 Var* wrapdai_var_create(size_t label, size_t states);
 void wrapdai_var_destroy(Var *hdl);
@@ -87,13 +87,12 @@ void wrapdai_fg_restoreFactors(FactorGraph *fg) ;
 void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) ;
 
 
-JTree* wrapdai_jt_create();
-JTree* wrapdai_jt_create_fgps(FactorGraph *fg, PropertySet *ps);
-void wrapdai_jt_delete(JTree *jt);
-JTree* wrapdai_jt_clone(JTree *jt);
-void wrapdai_jt_init(JTree *jt);
-void wrapdai_jt_run(JTree *jt);
-size_t wrapdai_jt_iterations(JTree *jt);
-const char* wrapdai_jt_printProperties(JTree *jt);
-Factor* wrapdai_jt_calcMarginal(JTree *jt, VarSet *vs);
-Factor* wrapdai_jt_belief(JTree *jt, VarSet *vs);
+InfAlg* wrapdai_newInfAlg(const std::string &name, const FactorGraph &fg, PropertySet *ps) { return new newInfAlg(name, fg, ps); }
+void wrapdai_ia_delete(InfAlg *ia);
+InfAlg* wrapdai_ia_clone(InfAlg *ia);
+void wrapdai_ia_init(InfAlg *ia);
+void wrapdai_ia_run(InfAlg *ia);
+size_t wrapdai_ia_iterations(InfAlg *ia);
+const char* wrapdai_ia_printProperties(InfAlg *ia);
+Factor* wrapdai_ia_belief(InfAlg *ia, VarSet *vs);
+Factor* wrapdai_ia_calcMarginal(const InfAlg *ia, const VarSet *vs, bool reInit) { return new Factor(calcMarginal(*ia, *vs, reInit)); }
