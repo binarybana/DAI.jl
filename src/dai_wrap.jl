@@ -502,7 +502,7 @@ function getindex(fg::FactorGraph, ind)
 end
 function setindex!(fg::FactorGraph, fac::Factor, ind)
   0 < ind <= numFactors(fg) || throw(BoundsError())
-  ccall( (:wrapdai_fg_setFactor_backup, libdai), Void, 
+  ccall( (:wrapdai_fg_setFactor, libdai), Void,
     (_FactorGraph, Cint, _Factor), fg.hdl, ind-1, fac.hdl)
 end
 function ==(fg1::FactorGraph, fg2::FactorGraph)
@@ -546,7 +546,7 @@ function show(io::IO, fg::FactorGraph)
     for i=1:numFactors(fg)
       print(io, "$i: ")
       show(io, fg[i])
-      println(",")
+      println(io,",")
     end
     print(io,")")
   end
@@ -563,20 +563,29 @@ type InfAlg
     v
   end
 end
-function InfAlg(fg::FactorGraph, name="JTREE", props="")
-  if length(props) == 0
-    if name == "JTREE"
-      props = "[updates=HUGIN]" 
-    elseif name == "BP"
-      props = "[inference=SUMPROD,updates=SEQRND,logdomain=1,tol=1e-9,maxiter=10000,damping=0.0]"
-    else
-      raise(ArgumentError("Unknown Inference Algorithm name"))
-    end
-  end
-  ps = wrapdai_ps_create(props)
-  ia = InfAlg(ccall( (:wrapdai_newInfAlg, libdai), _InfAlg, (Ptr{Uint8}, _FactorGraph, _PropertySet), name, fg.hdl, ps))
-  wrapdai_ps_delete(ps)
-  ia
+function InfAlg(fg::FactorGraph)
+  #   OLD:
+  #   full = "JTREE[updates=HUGIN,verbose=0]" 
+  #   full = "BP[inference=SUMPROD,verbose=0,updates=SEQRND,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
+
+  # From libDAI tests/aliases
+  # full = "BP[inference=SUMPROD,updates=SEQMAX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
+  # full = "FBP[inference=SUMPROD,updates=SEQMAX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
+  # full = "TRWBP[updates=SEQFIX,tol=1e-9,maxiter=10000,logdomain=0,nrtrees=0]"
+  # full = "JTREE[inference=SUMPROD,updates=HUGIN]"
+  full = "JTREE[inference=SUMPROD,updates=SHSH]"
+  # full = "MF[tol=1e-9,maxiter=10000,damping=0.0,init=UNIFORM,updates=NAIVE]"
+  # full = "TREEEP[type=ORG,tol=1e-9,maxiter=10000]"
+  # full = "MR[updates=FULL,inits=RESPPROP,tol=1e-9]"
+  # full = "HAK[doubleloop=0,clusters=MIN,init=UNIFORM,tol=1e-9,maxiter=10000]"
+  # full = "HAK[doubleloop=0,clusters=LOOP,init=UNIFORM,loopdepth=4,tol=1e-9,maxiter=10000]"
+  # full = "HAK[doubleloop=1,clusters=LOOP,init=UNIFORM,loopdepth=6,tol=1e-9,maxiter=10000]"
+  # full = "LC[cavity=FULL,reinit=1,updates=SEQRND,maxiter=10000,cavainame=BP,cavaiopts=[updates=SEQMAX,tol=1e-9,maxiter=10000,logdomain=0],tol=1e-9]"
+  # full = "LC[cavity=FULL,reinit=1,updates=SEQFIX,maxiter=10000,cavainame=TREEEP,cavaiopts=[type=ORG,tol=1e-9,maxiter=10000],tol=1e-9]"
+  # full = "GIBBS[maxiter=10000,burnin=100,restart=10000]"
+  # full = "DECMAP[ianame=BP,iaopts=[inference=MAXPROD,updates=SEQRND,logdomain=1,tol=1e-9,maxiter=10000,damping=0.1,verbose=0],reinit=1,verbose=0]"
+  # full = "GLC[rgntype=SINGLE,cavity=UNIFORM,updates=SEQRND,maxiter=10000,tol=1e-9,cavainame=BP,cavaiopts=[updates=SEQMAX,tol=1e-9,maxiter=10000,logdomain=0],inainame=EXACT,inaiopts=[],tol=1e-9,verbose=0]"
+  InfAlg(ccall( (:wrapdai_newInfAlgFromString, libdai), _InfAlg, (Ptr{Uint8}, _FactorGraph), full, fg.hdl))
 end
 
 function wrapdai_infalg_delete(ia::InfAlg)
@@ -605,8 +614,8 @@ function properties(ia::InfAlg)
   ptr = ccall( (:wrapdai_ia_printProperties, libdai), Ptr{Uint8}, (_InfAlg,), ia.hdl)
   bytestring(ptr)
 end
-function marginal(ia::InfAlg, vs::VarSet)
-  Factor(ccall( (:wrapdai_ia_calcMarginal, libdai), _Factor, (_InfAlg, _VarSet), ia.hdl, vs.hdl))
+function marginal(ia::InfAlg, vs::VarSet, reinit=false)
+  Factor(ccall( (:wrapdai_ia_calcMarginal, libdai), _Factor, (_InfAlg, _VarSet, Cuchar), ia.hdl, vs.hdl, reinit))
 end
 function belief(ia::InfAlg, vs::VarSet)
   Factor(ccall( (:wrapdai_ia_belief, libdai), _Factor, (_InfAlg, _VarSet), ia.hdl, vs.hdl))

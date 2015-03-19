@@ -145,28 +145,19 @@ gc()
 @test fg[2] == fac2
 @test fg[3] == fac3
 
-ia = nothing
-for name = ["JTREE", "BP"]
-  println("Testing $name")
-  ia = InfAlg(fg)
-  ia2 = deepcopy(ia)
-  @test ia2.hdl != ia.hdl
+ia = InfAlg(fg)
+ia2 = deepcopy(ia)
+@test ia2.hdl != ia.hdl
 
-  ia = InfAlg(fg)
-  init!(ia)
-  run!(ia)
-  println("iterations: $(iterations(ia))")
-  println(properties(ia))
-  marginal(ia, vs1)
-  @time marg = marginal(ia, vs1)
-  bel = belief(ia, vs1)
-  @show p(marg)
-  @show p(bel)
+init!(ia)
+run!(ia)
+println("iterations: $(iterations(ia))")
+println(properties(ia))
+marg = marginal(ia, vs1)
+bel = belief(ia, vs1)
 
-  @test_approx_eq sum(p(marg)) 1
-  @test_approx_eq sum(p(bel)) 1
-end
-
+@test_approx_eq sum(p(marg)) 1
+@test_approx_eq sum(p(bel)) 1
 
 @test fg[1] == fac
 @test fg[2] == fac2
@@ -191,6 +182,12 @@ setBackedFactor!(fgc,1,facc)
 @test fgc != fg
 restoreFactors!(fgc)
 @test fgc == fg
+
+## Test fg backups
+fgc[1] = facc
+@test fgc != fg
+restoreFactors!(fgc)
+@test fgc != fg
 
 ## Test unsafe vars
 facc = copy(fac)
@@ -259,3 +256,55 @@ fac3 = embed(fac, vs+Var(3,2))
 #println(vs1)
 #println(fac)
 #println(fg)
+
+
+v1 = Var(1,2)
+v2 = Var(2,2)
+v3 = Var(3,2)
+
+f1 = Factor(v1)
+f2 = Factor(VarSet(v1,v2))
+f3 = Factor(VarSet(v1,v3))
+
+f1[1] = 0.0
+f1[2] = 1.0
+
+f2[1] = 0.6
+f2[2] = 0.2
+f2[3] = 0.8
+f2[4] = 0.2
+
+f3[1] = 0.6
+f3[2] = 0.2
+f3[3] = 0.8
+f3[4] = 0.2
+
+vs = VarSet(v1,v2)
+fg = FactorGraph(f1, f2, f3)
+
+println("")
+println("#########################################")
+println("Testing Marginalization")
+println("#########################################")
+println("")
+ia = InfAlg(fg)
+ia2 = deepcopy(ia)
+@test ia2.hdl != ia.hdl
+
+init!(ia)
+run!(ia)
+println("iterations: $(iterations(ia))")
+println(properties(ia))
+marginal(ia, vs)
+@time marg = marginal(ia, vs)
+belief(ia, vs)
+@time bel = belief(ia, vs)
+
+@show p(marg)
+@show p(bel)
+
+@test_approx_eq sum(p(marg)) 1
+@test_approx_eq sum(p(bel)) 1
+println("")
+println("#########################################")
+println("")

@@ -265,7 +265,7 @@ Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) { return new Factor (fg->fac
 // unsafe but would be interesting to try...:
 //Factor* wrapdai_fg_factor_unsafe(FactorGraph *fg, int ind) { return &(fg->factor(ind)); }
 
-void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac); }
+void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac, false); }
 void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac, true); }
 
 //void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac);) }
@@ -280,6 +280,7 @@ void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) { fg->ReadFromFile(tex
 //InfAlg:
 
 InfAlg* wrapdai_newInfAlg(const char* name, const FactorGraph &fg, PropertySet *ps) { return newInfAlg(std::string(name), fg, *ps); }
+InfAlg* wrapdai_newInfAlgFromString(const char* name, const FactorGraph &fg) { return newInfAlgFromString(std::string(name), fg); }
 void wrapdai_ia_delete(InfAlg *ia) { delete ia; }
 InfAlg* wrapdai_ia_clone(InfAlg *ia) { return ia->clone(); }
 void wrapdai_ia_init(InfAlg *ia) { ia->init(); }

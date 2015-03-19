@@ -87,7 +87,8 @@ void wrapdai_fg_restoreFactors(FactorGraph *fg) ;
 void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) ;
 
 
-InfAlg* wrapdai_newInfAlg(const std::string &name, const FactorGraph &fg, PropertySet *ps) { return new newInfAlg(name, fg, ps); }
+InfAlg* wrapdai_newInfAlg(const std::string &name, const FactorGraph &fg, PropertySet *ps);
+InfAlg* wrapdai_newInfAlgFromString(const char* name, const FactorGraph &fg);
 void wrapdai_ia_delete(InfAlg *ia);
 InfAlg* wrapdai_ia_clone(InfAlg *ia);
 void wrapdai_ia_init(InfAlg *ia);
@@ -95,4 +96,4 @@ void wrapdai_ia_run(InfAlg *ia);
 size_t wrapdai_ia_iterations(InfAlg *ia);
 const char* wrapdai_ia_printProperties(InfAlg *ia);
 Factor* wrapdai_ia_belief(InfAlg *ia, VarSet *vs);
-Factor* wrapdai_ia_calcMarginal(const InfAlg *ia, const VarSet *vs, bool reInit) { return new Factor(calcMarginal(*ia, *vs, reInit)); }
+Factor* wrapdai_ia_calcMarginal(const InfAlg *ia, const VarSet *vs, bool reInit);
