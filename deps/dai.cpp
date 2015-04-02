@@ -266,8 +266,8 @@ Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) { return new Factor (fg->fac
 // unsafe but would be interesting to try...:
 //Factor* wrapdai_fg_factor_unsafe(FactorGraph *fg, int ind) { return &(fg->factor(ind)); }
 
-void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac, false); }
-void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { fg->setFactor(ind, *fac, true); }
+void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { fg->FactorGraph::setFactor(ind, *fac, false); }
+void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { fg->FactorGraph::setFactor(ind, *fac, true); }
 
 //void wrapdai_fg_setFactor(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac);) }
 //void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) { TRYCATCH(fg->setFactor(ind, *fac, true);) }
