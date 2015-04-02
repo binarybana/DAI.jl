@@ -261,6 +261,7 @@ FactorGraph* wrapdai_fg_clone(FactorGraph *fg) { return fg->clone(); }
 size_t wrapdai_fg_nrVars(FactorGraph *fg) { return fg->nrVars(); }
 size_t wrapdai_fg_nrFactors(FactorGraph *fg) { return fg->nrFactors(); }
 size_t wrapdai_fg_nrEdges(FactorGraph *fg) { return fg->nrEdges(); }
+void wrapdai_fg_printBPG(FactorGraph *fg) { std::cout<<(fg->bipGraph())<<std::endl; }
 Factor* wrapdai_fg_factor(FactorGraph *fg, int ind) { return new Factor (fg->factor(ind)); }
 // unsafe but would be interesting to try...:
 //Factor* wrapdai_fg_factor_unsafe(FactorGraph *fg, int ind) { return &(fg->factor(ind)); }

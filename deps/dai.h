@@ -85,6 +85,7 @@ void wrapdai_fg_setFactor_backup(FactorGraph *fg, int ind, Factor *fac) ;
 void wrapdai_fg_clearBackups(FactorGraph *fg) ;
 void wrapdai_fg_restoreFactors(FactorGraph *fg) ;
 void wrapdai_fg_readFromFile(FactorGraph *fg, char* text) ;
+void wrapdai_fg_printBPG(FactorGraph *fg);
 
 
 InfAlg* wrapdai_newInfAlg(const std::string &name, const FactorGraph &fg, PropertySet *ps);

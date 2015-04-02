@@ -496,6 +496,9 @@ end
 function numEdges(fg::FactorGraph)
   int(ccall( (:wrapdai_fg_nrEdges, libdai), Csize_t, (_FactorGraph,), fg.hdl))
 end
+function printBPG(fg::FactorGraph)
+  ccall( (:wrapdai_fg_printBPG, libdai), Void, (_FactorGraph,), fg.hdl)
+end
 function getindex(fg::FactorGraph, ind)
   0 < ind <= numFactors(fg) || throw(BoundsError())
   Factor(ccall( (:wrapdai_fg_factor, libdai), _Factor, (_FactorGraph, Cint), fg.hdl, ind-1))
@@ -563,7 +566,7 @@ type InfAlg
     v
   end
 end
-function InfAlg(fg::FactorGraph)
+function InfAlg(fg::FactorGraph, desc="")
   #   OLD:
   #   full = "JTREE[updates=HUGIN,verbose=0]" 
   #   full = "BP[inference=SUMPROD,verbose=0,updates=SEQRND,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
@@ -572,8 +575,8 @@ function InfAlg(fg::FactorGraph)
   # full = "BP[inference=SUMPROD,updates=SEQMAX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
   # full = "FBP[inference=SUMPROD,updates=SEQMAX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]"
   # full = "TRWBP[updates=SEQFIX,tol=1e-9,maxiter=10000,logdomain=0,nrtrees=0]"
-  # full = "JTREE[inference=SUMPROD,updates=HUGIN]"
-  full = "JTREE[inference=SUMPROD,updates=SHSH]"
+  full = "JTREE[inference=SUMPROD,updates=HUGIN]"
+  # full = "JTREE[inference=SUMPROD,updates=SHSH]"
   # full = "MF[tol=1e-9,maxiter=10000,damping=0.0,init=UNIFORM,updates=NAIVE]"
   # full = "TREEEP[type=ORG,tol=1e-9,maxiter=10000]"
   # full = "MR[updates=FULL,inits=RESPPROP,tol=1e-9]"
@@ -585,7 +588,7 @@ function InfAlg(fg::FactorGraph)
   # full = "GIBBS[maxiter=10000,burnin=100,restart=10000]"
   # full = "DECMAP[ianame=BP,iaopts=[inference=MAXPROD,updates=SEQRND,logdomain=1,tol=1e-9,maxiter=10000,damping=0.1,verbose=0],reinit=1,verbose=0]"
   # full = "GLC[rgntype=SINGLE,cavity=UNIFORM,updates=SEQRND,maxiter=10000,tol=1e-9,cavainame=BP,cavaiopts=[updates=SEQMAX,tol=1e-9,maxiter=10000,logdomain=0],inainame=EXACT,inaiopts=[],tol=1e-9,verbose=0]"
-  InfAlg(ccall( (:wrapdai_newInfAlgFromString, libdai), _InfAlg, (Ptr{Uint8}, _FactorGraph), full, fg.hdl))
+  InfAlg(ccall( (:wrapdai_newInfAlgFromString, libdai), _InfAlg, (Ptr{Uint8}, _FactorGraph), length(desc) == 0 ? full : desc, fg.hdl))
 end
 
 function wrapdai_infalg_delete(ia::InfAlg)
